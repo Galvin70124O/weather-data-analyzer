@@ -1,32 +1,20 @@
 """
 Analyze stored weather data using pandas.
+
+The Streamlit app stores records in SQLite. These helper functions are useful
+for local command-line checks and beginner practice.
 """
 
-import pandas as pd
-
-from fetch_weather import CSV_FILE, create_csv_if_missing
+from database import initialize_database, load_all_weather_history
 
 
 def load_weather_data():
-    """Read the weather CSV file and return it as a pandas DataFrame."""
-    if not create_csv_if_missing():
-        print("Could not prepare the weather CSV file.")
-        return None
-
-    try:
-        data = pd.read_csv(CSV_FILE)
-    except FileNotFoundError:
-        print("No weather data found. Please fetch weather data first.")
-        return None
-    except pd.errors.EmptyDataError:
-        print("The weather CSV file is empty. Please fetch weather data first.")
-        return None
-    except OSError as error:
-        print(f"Could not read the weather CSV file: {error}")
-        return None
+    """Read weather data from SQLite and return it as a pandas DataFrame."""
+    initialize_database()
+    data = load_all_weather_history()
 
     if data.empty:
-        print("No weather records found. Please fetch weather data first.")
+        print("No weather records found. Log in to the Streamlit app and fetch weather first.")
         return None
 
     return data
@@ -47,6 +35,7 @@ def analyze_weather_data():
     most_common_condition = most_common_condition[0] if not most_common_condition.empty else "Not available"
 
     print("\n===== Weather Data Analysis =====")
+    print(f"Total Records: {len(data)}")
     print(f"Average Temperature: {average_temperature:.2f} C")
     print(f"Highest Temperature: {highest_temperature:.2f} C")
     print(f"Lowest Temperature: {lowest_temperature:.2f} C")

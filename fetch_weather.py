@@ -7,10 +7,16 @@ import os
 from datetime import datetime
 
 import requests
+from dotenv import load_dotenv
 
 
-# OpenWeatherMap API key provided for this project.
-API_KEY = "a197094fcc506fc7b9a0d0fd6dada94f"
+# Load local secrets from .env during development. Render environment variables
+# are already available through os.getenv, so this stays deployment-friendly.
+load_dotenv()
+
+# OpenWeatherMap API key. Set this in .env locally or as an environment
+# variable on Render. Never hardcode real API keys in source code.
+API_KEY = os.getenv("OPENWEATHER_API_KEY")
 
 # API URL for current weather data.
 BASE_URL = "https://api.openweathermap.org/data/2.5/weather"
@@ -81,6 +87,13 @@ def fetch_weather_data(city):
     try:
         global LAST_ERROR
         LAST_ERROR = ""
+
+        if not API_KEY:
+            set_last_error(
+                "OpenWeatherMap API key is missing. Set OPENWEATHER_API_KEY in "
+                "your .env file locally or in Render environment variables."
+            )
+            return None
 
         parameters = {
             "q": city,

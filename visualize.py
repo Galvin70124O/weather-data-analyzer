@@ -1,41 +1,22 @@
 """
 Create graphs from stored weather data using matplotlib.
+
+The main web app uses Plotly charts, but this file keeps the beginner-friendly
+command-line visualization examples.
 """
 
 import matplotlib.pyplot as plt
-import pandas as pd
 
-from fetch_weather import CSV_FILE, create_csv_if_missing
+from database import initialize_database, load_all_weather_history
 
 
 def load_weather_data():
-    """Read weather data and prepare the date_time column for graphing."""
-    if not create_csv_if_missing():
-        print("Could not prepare the weather CSV file.")
-        return None
-
-    try:
-        data = pd.read_csv(CSV_FILE)
-    except FileNotFoundError:
-        print("No weather data found. Please fetch weather data first.")
-        return None
-    except pd.errors.EmptyDataError:
-        print("The weather CSV file is empty. Please fetch weather data first.")
-        return None
-    except OSError as error:
-        print(f"Could not read the weather CSV file: {error}")
-        return None
+    """Read weather data from SQLite and prepare it for graphing."""
+    initialize_database()
+    data = load_all_weather_history()
 
     if data.empty:
-        print("No weather records found. Please fetch weather data first.")
-        return None
-
-    # Convert text dates into real date-time values so matplotlib can plot them.
-    data["date_time"] = pd.to_datetime(data["date_time"], errors="coerce")
-    data = data.dropna(subset=["date_time"])
-
-    if data.empty:
-        print("No valid date-time records found. Please fetch weather data again.")
+        print("No weather records found. Log in to the Streamlit app and fetch weather first.")
         return None
 
     return data

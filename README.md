@@ -1,52 +1,49 @@
-# Weather Data Analyzer
+# Weather Analytics Platform
 
-Weather Data Analyzer is a beginner-friendly Streamlit web application that fetches live weather data from the OpenWeatherMap API, stores the data in CSV format, and displays interactive weather charts.
-
-## Project Purpose
-
-This project is suitable for a college mini project because it demonstrates:
-
-- API usage with Python
-- CSV file storage
-- Data analysis with pandas
-- Interactive charts with Plotly
-- A modern web dashboard using Streamlit
-- Clean modular project organization
+Weather Analytics Platform is a professional multi-user Streamlit web app for live weather collection and analysis. It includes account creation, secure login, private user dashboards, SQLite cloud-ready storage, OpenWeatherMap integration, and interactive Plotly charts.
 
 ## Features
 
-- Search weather by city name
-- Fetch live weather data from OpenWeatherMap
-- Display weather metric cards for:
-  - Temperature
-  - Humidity
-  - Pressure
-  - Weather condition
-  - Wind speed
-- Store weather history in `data/weather.csv`
-- Show interactive charts for:
-  - Temperature trends
-  - Humidity trends
-  - Weather condition frequency
-- Sidebar navigation
-- Responsive dashboard layout
-- Beginner-friendly comments in the code
+- Sign up, login, and logout pages
+- Session-based login using Streamlit session state
+- Salted password hashing with PBKDF2
+- Duplicate username and email protection
+- Private weather history for each user
+- Live OpenWeatherMap current weather lookups
+- Saved searches and personalized dashboard greeting
+- Dark professional UI with glass-style weather cards
+- Interactive temperature, humidity, and weather condition charts
+- SQLite database storage in `data/weather_app.db`
+- Render-compatible environment variable support
 
 ## Project Structure
 
 ```text
 weather-data-analyzer/
 |-- app.py
+|-- auth.py
+|-- database.py
 |-- fetch_weather.py
 |-- analyze.py
 |-- visualize.py
 |-- data/
 |   `-- weather.csv
+|-- .env.example
+|-- .gitignore
 |-- requirements.txt
 `-- README.md
 ```
 
-`app.py` is the main Streamlit web application. The helper files keep the code modular and easy to understand.
+`app.py` is the main Streamlit application. `auth.py` handles signup, login, logout, and password hashing. `database.py` owns the SQLite tables and user-specific weather queries.
+
+## Database Tables
+
+The app creates these tables automatically when it starts:
+
+- `users`: stores username, email, password hash, and creation time
+- `weather_history`: stores weather records linked to `users.id`
+
+Each dashboard query filters by the logged-in user's ID, so users only see their own saved weather data.
 
 ## Installation
 
@@ -56,17 +53,10 @@ From the folder that contains `weather-data-analyzer`, move into the project fol
 cd weather-data-analyzer
 ```
 
-Create a virtual environment:
+Create and activate a virtual environment:
 
 ```bash
 python -m venv venv
-```
-
-Activate the virtual environment.
-
-On Windows:
-
-```bash
 venv\Scripts\activate
 ```
 
@@ -76,75 +66,73 @@ On macOS or Linux:
 source venv/bin/activate
 ```
 
-Install the required libraries:
+Install dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## API Usage
+## API Key
 
-This project uses the OpenWeatherMap Current Weather Data API.
+The app reads the OpenWeatherMap API key from an environment variable:
 
-The API key is already present in `fetch_weather.py`:
-
-```python
-API_KEY = "a197094fcc506fc7b9a0d0fd6dada94f"
+```text
+OPENWEATHER_API_KEY
 ```
 
-When a city is searched, the app requests live data from OpenWeatherMap and saves these values:
-
-- Temperature in Celsius
-- Humidity
-- Pressure
-- Weather description
-- Wind speed
-- Date and time of the request
-- City name
-
-## How to Run the Streamlit App
-
-Always run the Streamlit app from inside the `weather-data-analyzer` folder:
+For local development, create a `.env` file from the sample:
 
 ```bash
-cd weather-data-analyzer
-streamlit run app.py
+copy .env.example .env
 ```
 
-If you are already inside the project folder, run:
+Then edit `.env`:
+
+```text
+OPENWEATHER_API_KEY=your_real_openweathermap_key
+```
+
+The `.env` file is ignored by Git and must not be committed.
+
+## Run Locally
 
 ```bash
 streamlit run app.py
 ```
 
-Streamlit will open the app in your browser. If it does not open automatically, copy the local URL shown in the terminal and paste it into your browser.
+Then open the local URL shown by Streamlit.
 
 ## How to Use
 
-1. Open the dashboard.
-2. Enter a city name in the search box.
-3. Click `Fetch Weather`.
-4. View the latest weather metrics.
-5. Scroll down to see temperature, humidity, and weather condition charts.
-6. Open the `History` page from the sidebar to view saved CSV records.
+1. Open the app.
+2. Create an account from the Sign Up page.
+3. Log in with your username or email.
+4. Search for a city on the dashboard.
+5. View current weather, saved searches, charts, and your private history.
+6. Use the Account page or sidebar button to log out.
 
-## CSV Storage
+## Render Deployment Notes
 
-All weather records are saved in:
+Use this start command on Render:
 
-```text
-data/weather.csv
+```bash
+streamlit run app.py --server.port $PORT --server.address 0.0.0.0
 ```
 
-The CSV file is automatically created if it is missing.
+Add this environment variable:
 
-The project uses a fixed path based on the location of `fetch_weather.py`, so the CSV is saved inside the project's `data` folder.
+```text
+OPENWEATHER_API_KEY=your_openweathermap_key
+```
 
-## Future Improvements
+Render environment variables are available directly through `os.getenv`, so no `.env` file is needed on Render.
 
-- Add user-selected date filters
-- Save charts as image files
-- Compare two cities side by side
-- Add forecast data for upcoming days
-- Use environment variables for the API key
-- Deploy the dashboard online with Streamlit Community Cloud
+SQLite writes to `data/weather_app.db` by default. To keep user accounts and history after redeploys, attach a Render persistent disk and set:
+
+```text
+WEATHER_DATABASE_FILE=/path/to/persistent/weather_app.db
+```
+
+## Security Notes
+
+Passwords are salted and hashed before storage. The app validates login credentials with secure hash comparison and prevents duplicate usernames or emails. API keys are loaded from environment variables with `python-dotenv` locally and Render environment variables in production. Do not store real production secrets directly in source code.
