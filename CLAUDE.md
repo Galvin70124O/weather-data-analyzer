@@ -48,6 +48,8 @@ alembic check                     # fails if models and migrations differ
 
 - **Scoping:** user-owned data is always loaded via `CurrentUser` and filtered on `user.id`. Never accept a user id from the URL/body. `tests/test_scoping.py` fails if a new `/api` route works without a login (add truly public routes to `PUBLIC_ROUTES` there on purpose).
 - **Auth:** JWT in an httpOnly, SameSite=Lax cookie (`wa_session`), never in localStorage. Claims: `sub` (user id), `tv` (token_version). Changing the password bumps `token_version` → other sessions are signed out. bcrypt directly (no passlib), cost 12, passwords 8-72 bytes.
+- **Secure cookie:** `settings.secure_cookies` = Secure flag exactly when `ENVIRONMENT=production` (override with `COOKIE_SECURE`; `false` is refused in production).
+- **Cross-site requests:** besides SameSite=Lax, a middleware rejects POST/PUT/PATCH/DELETE to `/api/` without `Content-Type: application/json` (415). The client must send that header on every write, logout included. Never add CORS.
 - **Rate limit:** failed logins are stored in `login_attempts` (5 per account, 20 per IP, per 15 min) so restarts don't reset them. Same for change-password.
 - **Units:** the server stores and computes in metric only. `users.units` (metric/imperial) is a display preference; the client converts.
 - **Secrets:** only in env vars / `.env` (git-ignored). The OpenWeatherMap key stays on the server and must never be sent to the browser.

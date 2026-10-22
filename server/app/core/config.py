@@ -8,7 +8,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import SecretStr, field_validator
+from pydantic import SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -36,7 +36,8 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_days: int = 7
     cookie_name: str = "wa_session"
-    cookie_secure: bool = False          # True in production (HTTPS only)
+    # None = follow ENVIRONMENT (Secure in production, not over local http). Can be forced on locally.
+    cookie_secure: bool | None = None
 
     # Login rate limit: failed attempts allowed in a sliding window
     login_window_minutes: int = 15
@@ -54,6 +55,19 @@ class Settings(BaseSettings):
         if len(value.get_secret_value()) < 32:
             raise ValueError("JWT_SECRET must be at least 32 characters (generate one with: python -c \"import secrets; print(secrets.token_urlsafe(48))\")")
         return value
+
+    @model_validator(mode="after")
+    def _production_cookie_is_secure(self) -> "Settings":
+        if self.environment == "production" and self.cookie_secure is False:
+            raise ValueError("COOKIE_SECURE=false is not allowed in production: the session cookie must be HTTPS-only.")
+        return self
+
+    @property
+    def secure_cookies(self) -> bool:
+        """Whether the session cookie gets the Secure flag (only sent over HTTPS)."""
+        if self.cookie_secure is not None:
+            return self.cookie_secure
+        return self.environment == "production"
 
 
 @lru_cache

@@ -59,7 +59,7 @@ def test_wrong_password_and_unknown_user_get_the_same_message(make_client):
 
 def test_logout_clears_the_cookie(client):
     register(client)
-    response = client.post("/api/auth/logout")
+    response = client.post("/api/auth/logout", json={})
     assert response.status_code == 204
     assert f'{COOKIE}=""' in response.headers["set-cookie"] or "Max-Age=0" in response.headers["set-cookie"]
     assert client.get("/api/me").status_code == 401

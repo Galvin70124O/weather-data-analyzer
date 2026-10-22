@@ -22,7 +22,7 @@ def set_session_cookie(response: Response, user: User) -> None:
         create_session_token(user.id, user.token_version),
         max_age=settings.jwt_expire_days * 24 * 3600,
         httponly=True,                 # page scripts can't read it
-        secure=settings.cookie_secure,  # HTTPS only in production
+        secure=settings.secure_cookies,  # HTTPS only in production
         samesite="lax",                # not sent on cross-site POSTs (CSRF protection)
         path="/",
     )
@@ -78,7 +78,7 @@ def login(body: LoginIn, request: Request, response: Response, db: DbSession) ->
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 def logout(response: Response) -> None:
     settings = get_settings()
-    response.delete_cookie(settings.cookie_name, path="/", secure=settings.cookie_secure, httponly=True, samesite="lax")
+    response.delete_cookie(settings.cookie_name, path="/", secure=settings.secure_cookies, httponly=True, samesite="lax")
 
 
 @router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)
