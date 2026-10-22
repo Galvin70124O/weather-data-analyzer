@@ -1,0 +1,22 @@
+# Render Blueprint: one web service for the API and the React client (see the Dockerfile).
+# Deploy: Render dashboard -> New -> Blueprint -> pick this repo. Fill in the "sync: false" values
+# when Render asks (they are secrets and never live in this file).
+services:
+  - type: web
+    name: weather-data-analyzer
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    region: frankfurt
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL            # Neon production branch, "postgresql://...?sslmode=require"
+        sync: false
+      - key: OPENWEATHER_API_KEY     # server only, never sent to the browser
+        sync: false
+      - key: JWT_SECRET              # Render generates a long random value once
+        generateValue: true

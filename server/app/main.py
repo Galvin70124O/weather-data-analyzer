@@ -9,11 +9,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 
+from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.db.session import get_sessionmaker
 from app.routers import analytics, auth, cities, health, me, my_cities
 from app.services.cache import prune_at_startup
 from app.services.errors import UpstreamError
+from app.spa import mount_client
 
 STATE_CHANGING_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 
@@ -50,10 +52,15 @@ def create_app() -> FastAPI:
                                     status_code=415)
         return await call_next(request)
 
+    settings = get_settings()
+    headers = dict(SECURITY_HEADERS)
+    if settings.environment == "production":       # served over HTTPS only (Render)
+        headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+
     @app.middleware("http")
     async def add_security_headers(request: Request, call_next) -> Response:
         response = await call_next(request)
-        for name, value in SECURITY_HEADERS.items():
+        for name, value in headers.items():
             response.headers.setdefault(name, value)
         return response
 
@@ -68,6 +75,7 @@ def create_app() -> FastAPI:
     app.include_router(cities.router)
     app.include_router(my_cities.router)
     app.include_router(analytics.router)
+    mount_client(app, settings.client_dist)      # last: the catch-all for the React pages
     return app
 
 

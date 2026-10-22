@@ -1,15 +1,24 @@
+import { lazy, Suspense } from "react";
 import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { SearchProvider } from "@/components/search/command-palette";
 import { Skeleton } from "@/components/ui/misc";
 import { useMe } from "@/hooks/use-auth";
-import { AccountPage } from "@/pages/account-page";
 import { LoginPage, RegisterPage } from "@/pages/auth-pages";
-import { CityPage } from "@/pages/city-page";
-import { ComparePage } from "@/pages/compare-page";
 import { DashboardPage } from "@/pages/dashboard-page";
-import { HistoryPage } from "@/pages/history-page";
+
+// The first screens (login, dashboard) are in the main bundle; the other pages load when opened
+const named = <K extends string>(load: () => Promise<Record<K, React.ComponentType>>, name: K) =>
+  lazy(() => load().then((module) => ({ default: module[name] })));
+const CityPage = named(() => import("@/pages/city-page"), "CityPage");
+const ComparePage = named(() => import("@/pages/compare-page"), "ComparePage");
+const HistoryPage = named(() => import("@/pages/history-page"), "HistoryPage");
+const AccountPage = named(() => import("@/pages/account-page"), "AccountPage");
+
+function PageSkeleton() {
+  return <div className="space-y-4" aria-busy="true"><Skeleton className="h-10 w-64" /><Skeleton className="h-64" /></div>;
+}
 
 /**
  * Pages that need a login share one layout (shell + Ctrl+K search), so the shell isn't rebuilt
@@ -24,7 +33,7 @@ function RequireLogin() {
   if (!me) return <Navigate to={`/login?next=${encodeURIComponent(location.pathname + location.search)}`} replace />;
   return (
     <SearchProvider>
-      <AppShell><Outlet /></AppShell>
+      <AppShell><Suspense fallback={<PageSkeleton />}><Outlet /></Suspense></AppShell>
     </SearchProvider>
   );
 }

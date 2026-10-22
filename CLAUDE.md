@@ -1,7 +1,7 @@
 # Weather Data Analyzer v2
 
 Rebuild of a Streamlit app as FastAPI + React. Work happens in phases, with a commit after each:
-1. backend skeleton + DB + auth ✅  2. weather + caching ✅  3. analytics + tests ✅  4. frontend (step 1 ✅ shell/auth/City page; step 2 Dashboard/Compare/History/Account/Ctrl+K after the user approves the look)  5. CI + Render deploy + README.
+1. backend skeleton + DB + auth ✅  2. weather + caching ✅  3. analytics + tests ✅  4. frontend ✅  5. CI + Render deploy + README ✅.
 The old Streamlit app lives in `legacy/` until v2 works. Don't edit it; don't delete it yet.
 
 ## Structure
@@ -21,6 +21,7 @@ server/                 FastAPI (Python 3.12)
   app/analytics/        PURE pandas functions (daily.py, normals.py, compare.py): DataFrame in, DataFrame/dict out
   app/services/openmeteo.py  archive fetch + daily_weather storage; normals.py lazy 1991-2020 normals; analytics.py glue
   app/deps.py           DbSession, CurrentUser, client_ip
+  app/spa.py            serves client/dist: real files, index.html fallback for app pages, CSP
   migrations/           Alembic (env.py reads DATABASE_URL from settings)
   tests/                pytest against a real Postgres (TEST_DATABASE_URL)
 client/                 React 18 + TS + Vite + Tailwind v4 + shadcn-style Radix components
@@ -31,9 +32,13 @@ client/                 React 18 + TS + Vite + Tailwind v4 + shadcn-style Radix 
   src/components/ui/    primitives (button, card, tabs, segmented control, menu, skeleton, states)
   src/components/charts/chart-kit.tsx  shared palette/axes/tooltip/ChartCard (Export CSV) for every chart
   src/components/weather/  hero, forecast, Meteocons icons (src/assets/weather-icons, MIT)
-  src/pages/            route pages; placeholder-pages.tsx is replaced in phase 4 step 2
+  src/components/search/command-palette.tsx  Ctrl+K city search (SearchProvider/useSearch; also "pick" mode for Compare)
+  src/pages/            route pages (Dashboard, City, Compare, History, Account, login/register); *.test.tsx next to them
   scripts/screenshots.mjs  Playwright design self-check (Edge channel, no browser download)
 legacy/                 old Streamlit app
+Dockerfile              Render image: builds the client, installs the server, runs alembic + uvicorn
+render.yaml             Render Blueprint (one web service; secrets are "sync: false")
+.github/workflows/ci.yml  backend (postgres:16, alembic check, pytest) + frontend (typecheck, test, build)
 docker-compose.yml      OPTIONAL local Postgres 16 (default is Neon dev/test branches)
 ```
 
@@ -82,6 +87,8 @@ alembic check                     # fails if models and migrations differ
   - Open-Meteo (free tier = non-commercial, daily limits): one archive request covers exactly the missing/due span. Days older than 7 days are final and never refetched; newer days at most every 6 h. Dates are the city's local calendar; analytics end at the city's local yesterday (`cities.utc_offset_s`). Today is never stored.
   - 1991-2020 normals: fetched lazily on a city's first analytics view, stored in `climate_normals` (365 rows), never refetched. If the fetch fails, analytics still work (`normals.available=false`) and the next view retries. 15-day window (±7, wraps the year), 29 Feb = 28 Feb, p10/p90 of daily mean = the "normal range".
   - `days` is 30/90/365 (checked in `period_days`; a `Literal` would reject query strings). Compare takes 2-3 different `city_id`s.
+- **Serving the client:** in production FastAPI serves `client/dist` (`app/spa.py`, mounted LAST so `/api` routes win; unknown `/api/*` stays a JSON 404). `/assets/*` is cached for a year (hashed names), `index.html` never. The CSP allows inline scripts only by hash, computed from `index.html` at startup: never add inline event handlers or `<script>` tags elsewhere. Inline `style` props are allowed (charts, icons).
+- **Deploy:** Docker on Render (`render.yaml`). The container runs `alembic upgrade head` before uvicorn (with `--proxy-headers` so the rate limit sees real IPs). `ENVIRONMENT=production` turns on Secure cookies and HSTS.
 - **Units:** the server stores and computes in metric only. `users.units` (metric/imperial) is a display preference; the client converts (`lib/units.ts`). Differences (anomalies) convert without +32; values already converted are formatted with `signedDegrees`, never converted twice.
 - **Frontend look:**
   - No hex/rgb values in components: add a token to `globals.css` (light + `.dark`), map it in `@theme`, and `tokens.test.ts` must still pass (text 4.5:1, graphics 3:1, also on glass and the gradient stops).
@@ -91,6 +98,11 @@ alembic check                     # fails if models and migrations differ
   - Grids that hold a sideways-scrolling strip need `minmax(0,1fr)` columns, or the page scrolls sideways at 375px. The screenshot script prints `OVERFLOW` when that happens.
   - Respect reduced motion: `MotionConfig reducedMotion="user"`, CSS media query, and `stillSvg()` strips the icons' `<animate>` tags.
   - Login redirects only to in-app paths (`safeNext`).
+  - Themes work per element too: a card with `data-wx`/`data-tod` gets its city's colours (dark selectors exist as `.dark[data-wx]` and `.dark [data-wx]`). New theme stops come from the palette rules in `tokens.test.ts`; never relax that test, change the colours.
+  - Chart marks use `--chart-*`/`--series-*` (3:1); text uses `--warm`/`--cool`/... (4.5:1). Compare: city i = `--series-(i+1)` everywhere (`seriesColor`).
+  - Bundle: login + dashboard are in the main chunk; other pages are `lazy()` routes, Recharts loads with the first chart. Vendor chunks (`react`, `ui`, `motion`, `query`) in `vite.config.ts`. Keep every chunk under Vite's 500 kB warning.
+  - Search, units and colour mode are shared state: `useSearch()`, `useUnits()` (saved on the account), `useColorMode()` (a small store, this browser only).
+  - Screenshots: `npm.cmd run screenshots` (`SHOTS_ONLY=city` for a subset) rewrites `/weather` in the browser to show every theme; look at them after UI changes. It prints `OVERFLOW` for sideways scrolling.
 - **Secrets:** only in env vars / `.env` (git-ignored). The OpenWeatherMap key stays on the server and must never be sent to the browser.
 - **Tests:** refuse to run unless `TEST_DATABASE_URL` is set and differs from `DATABASE_URL`. The schema is built with the real Alembic migrations; tables are truncated before every test. Outside APIs get mocked (respx), never called.
 - **Code:** small typed functions, type hints everywhere. Pure analysis functions (phase 3) go in their own module with unit tests and no DB/HTTP.

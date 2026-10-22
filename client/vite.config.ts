@@ -9,6 +9,21 @@ import { defineConfig } from "vite";
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: { alias: { "@": path.resolve(__dirname, "src") } },
+  build: {
+    rollupOptions: {
+      output: {
+        // Long-lived vendor chunks: they change less often than the app, so browsers keep them
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return undefined;
+          if (/[\/](react|react-dom|react-router|react-router-dom|scheduler)[\/]/.test(id)) return "react";
+          if (/[\/](@radix-ui|cmdk)[\/]/.test(id)) return "ui";
+          if (/[\/](framer-motion|motion-dom|motion-utils)[\/]/.test(id)) return "motion";
+          if (/[\/]@tanstack[\/]/.test(id)) return "query";
+          return undefined;     // the rest (Recharts with its d3 helpers, icons) follows its lazy importers
+        },
+      },
+    },
+  },
   server: {
     port: 5173,
     proxy: { "/api": { target: "http://127.0.0.1:8000", changeOrigin: false } },

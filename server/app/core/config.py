@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=REPO_ROOT / ".env", env_file_encoding="utf-8", extra="ignore")
 
     environment: Literal["development", "test", "production"] = "development"
+    # The built React client (npm run build). Served by FastAPI when it exists; absent in dev/tests.
+    client_dist: Path = REPO_ROOT / "client" / "dist"
 
     database_url: str
     test_database_url: str | None = None
