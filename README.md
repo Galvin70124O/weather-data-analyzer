@@ -8,7 +8,8 @@ version is in [`legacy/`](legacy/) until the new one is complete.
 | 1. Backend skeleton, database, accounts (register, login, logout, change password, rate limit) | ✅ done |
 | 2. Weather (OpenWeatherMap): city search, current weather, forecast, favourites, history, caching | ✅ done |
 | 3. Analytics: 30/90/365-day history, rolling means, 1991-2020 normals, anomalies, extremes, compare cities | ✅ done |
-| 4. Frontend (React + TypeScript + Vite) | next |
+| 4. Frontend (React + TypeScript + Vite): step 1 = design system, app shell, login/register, City page | step 1 done, waiting for review |
+| 4. Frontend step 2: Dashboard, Compare, History, Account, Ctrl+K search | |
 | 5. CI + Render deploy + full README | |
 
 ## Run the backend locally (Windows PowerShell)
@@ -24,6 +25,19 @@ uvicorn app.main:app --reload
 ```
 
 Open http://127.0.0.1:8000/api/docs. Run the tests with `pytest` (from `server/`).
+
+## Run the frontend locally
+
+With the backend running on port 8000, in a second PowerShell window:
+
+```powershell
+cd client
+npm.cmd install
+npm.cmd run dev            # http://localhost:5173 (proxies /api to :8000, same origin for the cookie)
+npm.cmd test               # Vitest: units, CSV, API client, components, WCAG contrast of every theme
+npm.cmd run build          # type-check + production build into client/dist
+npm.cmd run screenshots    # Playwright (uses installed Edge): 375px + 1440px, light + dark -> docs/screenshots/v2/
+```
 
 See [CLAUDE.md](CLAUDE.md) for the structure and conventions.
 

@@ -1,0 +1,188 @@
+/*
+  Design tokens: every colour, radius and shadow is defined ONCE here as a CSS variable.
+  Components only use the Tailwind names mapped in @theme below (bg-card, text-muted-foreground,
+  border-border, ...): no hex values in components.
+
+  Layers:
+    1. Base tokens for light (:root) and dark (.dark). Dark is the default (see index.html).
+    2. Weather themes ([data-wx] on <html>): the accent colour and two subtle gradient stops follow
+       the city's current condition; [data-tod="night"] deepens them after sunset.
+  Text colours are checked against every background and gradient stop for WCAG AA
+  (4.5:1 for text, 3:1 for chart graphics) in src/styles/tokens.test.ts.
+*/
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@fontsource-variable/inter";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------- 1. Base tokens ---------- */
+:root {
+  --background: #f5f7fb;
+  --foreground: #0b1220;
+  --card: #ffffff;
+  --card-foreground: #0b1220;
+  --glass: rgb(255 255 255 / 0.66);
+  --glass-border: rgb(255 255 255 / 0.7);
+  --muted: #eef2f7;
+  --muted-foreground: #4a5568;
+  --border: #dfe5ee;
+  --input: #cfd7e3;
+  --destructive: #b42318;
+  --destructive-foreground: #ffffff;
+  --success: #067647;
+  --warm: #b53b0a;
+  --cool: #1d4ed8;
+
+  /* Charts (shared by every chart) */
+  --chart-grid: #e3e8ef;
+  --chart-axis: #4a5568;
+  --chart-band: rgb(181 59 10 / 0.22);
+  --chart-normal: rgb(71 85 105 / 0.16);
+  --chart-line: #0b1220;
+  --chart-rain: #2563eb;
+  /* Compare: one colour per city, used everywhere */
+  --series-1: #2563eb;
+  --series-2: #b45309;
+  --series-3: #047857;
+
+  /* Default weather look (before a city is known) */
+  --accent: #0369a1;
+  --accent-foreground: #ffffff;
+  --wx-1: #e4ecf7;
+  --wx-2: #eef2f7;
+
+  --radius: 1rem;
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.06), 0 8px 24px rgb(15 23 42 / 0.06);
+  --shadow-pop: 0 12px 40px rgb(15 23 42 / 0.18);
+  /* Meteocons clouds are light grey: a soft shadow keeps them visible on white */
+  --icon-shadow: drop-shadow(0 2px 4px rgb(15 23 42 / 0.16)) drop-shadow(0 0 1px rgb(15 23 42 / 0.22));
+}
+
+.dark {
+  --background: #0a0f1c;
+  --foreground: #e9eef7;
+  --card: #111829;
+  --card-foreground: #e9eef7;
+  --glass: rgb(17 24 41 / 0.62);
+  --glass-border: rgb(255 255 255 / 0.08);
+  --muted: #182133;
+  --muted-foreground: #a3aec2;
+  --border: #243049;
+  --input: #2d3a56;
+  --destructive: #f97066;
+  --destructive-foreground: #1a0503;
+  --success: #47cd89;
+  --warm: #fb923c;
+  --cool: #60a5fa;
+
+  --chart-grid: #1f2a40;
+  --chart-axis: #a3aec2;
+  --chart-band: rgb(251 146 60 / 0.28);
+  --chart-normal: rgb(163 174 194 / 0.16);
+  --chart-line: #e9eef7;
+  --chart-rain: #60a5fa;
+  --series-1: #60a5fa;
+  --series-2: #fbbf24;
+  --series-3: #34d399;
+
+  --accent: #38bdf8;
+  --accent-foreground: #04121f;
+  --wx-1: #0d1526;
+  --wx-2: #111a2e;
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.28);
+  --shadow-pop: 0 16px 48px rgb(0 0 0 / 0.55);
+  --icon-shadow: none;
+}
+
+/* ---------- 2. Weather themes (light, then dark) ---------- */
+[data-wx="clear-day"] { --accent: #0369a1; --accent-foreground: #ffffff; --wx-1: #dbeafe; --wx-2: #fef3c7; }
+[data-wx="clear-night"] { --accent: #4338ca; --accent-foreground: #ffffff; --wx-1: #e0e7ff; --wx-2: #ede9fe; }
+[data-wx="clouds"] { --accent: #334155; --accent-foreground: #ffffff; --wx-1: #e2e8f0; --wx-2: #f1f5f9; }
+[data-wx="rain"] { --accent: #0e7490; --accent-foreground: #ffffff; --wx-1: #cffafe; --wx-2: #e0f2fe; }
+[data-wx="storm"] { --accent: #6d28d9; --accent-foreground: #ffffff; --wx-1: #ede9fe; --wx-2: #e0e7ff; }
+[data-wx="snow"] { --accent: #075985; --accent-foreground: #ffffff; --wx-1: #f0f9ff; --wx-2: #ffffff; }
+[data-wx="mist"] { --accent: #3f3f46; --accent-foreground: #ffffff; --wx-1: #f4f4f5; --wx-2: #e7e5e4; }
+[data-tod="night"]:not([data-wx="clear-night"]) { --wx-1: #e4e8f3; --wx-2: #dde3f0; }
+
+.dark[data-wx="clear-day"] { --accent: #38bdf8; --accent-foreground: #04121f; --wx-1: #0b2340; --wx-2: #2a2414; }
+.dark[data-wx="clear-night"] { --accent: #a5b4fc; --accent-foreground: #0b0f24; --wx-1: #0d1030; --wx-2: #1b1440; }
+.dark[data-wx="clouds"] { --accent: #cbd5e1; --accent-foreground: #0b1220; --wx-1: #121826; --wx-2: #1c2433; }
+.dark[data-wx="rain"] { --accent: #67e8f9; --accent-foreground: #031417; --wx-1: #06202a; --wx-2: #0b2a3a; }
+.dark[data-wx="storm"] { --accent: #c4b5fd; --accent-foreground: #160b2e; --wx-1: #150d2b; --wx-2: #251a45; }
+.dark[data-wx="snow"] { --accent: #bae6fd; --accent-foreground: #06131f; --wx-1: #101b2c; --wx-2: #1b2a40; }
+.dark[data-wx="mist"] { --accent: #d4d4d8; --accent-foreground: #111113; --wx-1: #151518; --wx-2: #23232a; }
+.dark[data-tod="night"]:not([data-wx="clear-night"]) { --wx-1: #0a0f1c; --wx-2: #121a2e; }
+
+/* Map tokens to Tailwind names: bg-background, text-muted-foreground, border-border, ring-accent, ... */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-glass: var(--glass);
+  --color-glass-border: var(--glass-border);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--accent);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warm: var(--warm);
+  --color-cool: var(--cool);
+  --color-series-1: var(--series-1);
+  --color-series-2: var(--series-2);
+  --color-series-3: var(--series-3);
+
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+
+  --radius-sm: calc(var(--radius) - 8px);
+  --radius-md: calc(var(--radius) - 4px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --shadow-card: var(--shadow-card);
+  --shadow-pop: var(--shadow-pop);
+}
+
+@layer base {
+  * { @apply border-border; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "cv11", "ss01";
+    overflow-x: hidden;
+  }
+  /* Every figure lines up: temperatures, percentages, times */
+  .num { font-variant-numeric: tabular-nums; }
+  .wx-icon { filter: var(--icon-shadow); }
+  :focus-visible { @apply outline-2 outline-offset-2 outline-accent; }
+}
+
+/* The weather backdrop behind the whole app: a subtle gradient from the theme's two stops */
+.wx-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(1200px 600px at 15% -10%, var(--wx-1), transparent 70%),
+    radial-gradient(900px 500px at 100% 0%, var(--wx-2), transparent 65%),
+    var(--background);
+  transition: background 600ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
