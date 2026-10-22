@@ -19,9 +19,16 @@ export function validateRegistration(username: string, email: string, password: 
   const errors: Record<string, string> = {};
   if (!USERNAME.test(username.trim())) errors.username = "3-32 characters: letters, numbers, dot, dash or underscore.";
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) errors.email = "Enter a valid email address.";
-  if (password.length < 8) errors.password = "At least 8 characters.";
-  else if (new TextEncoder().encode(password).length > 72) errors.password = "At most 72 bytes.";
+  const problem = passwordProblem(password);
+  if (problem) errors.password = problem;
   return errors;
+}
+
+/** The server's password rule (8 characters to 72 bytes, the bcrypt limit), or null if fine. */
+export function passwordProblem(password: string): string | null {
+  if (password.length < 8) return "At least 8 characters.";
+  if (new TextEncoder().encode(password).length > 72) return "At most 72 bytes.";
+  return null;
 }
 
 /** No city yet, so the login scene follows the visitor's own clock: clear day or clear night. */
@@ -86,7 +93,7 @@ function AuthLayout({ title, subtitle, children, footer }: { title: string; subt
   );
 }
 
-function Field({ id, label, error, type, ...input }: { id: string; label: string; error?: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+export function Field({ id, label, error, type, ...input }: { id: string; label: string; error?: string } & React.InputHTMLAttributes<HTMLInputElement>) {
   const [visible, setVisible] = useState(false);
   const isPassword = type === "password";
   return (
@@ -108,7 +115,7 @@ function Field({ id, label, error, type, ...input }: { id: string; label: string
   );
 }
 
-function FormError({ error }: { error: unknown }) {
+export function FormError({ error }: { error: unknown }) {
   if (!error) return null;
   const message = error instanceof ApiError ? error.message : "Something went wrong. Please try again.";
   return <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">{message}</p>;

@@ -1,7 +1,8 @@
-import { BarChart3, History, LayoutDashboard, LogOut, Moon, Sun, UserRound } from "lucide-react";
+import { BarChart3, History, LayoutDashboard, LogOut, Moon, Search, Sun, UserRound } from "lucide-react";
 import type { ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 
+import { SearchButton, useSearch } from "@/components/search/command-palette";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -86,6 +87,27 @@ function UserMenu() {
   );
 }
 
+const MOBILE_ITEM = "flex flex-col items-center gap-1 py-2.5 text-xs font-medium text-muted-foreground";
+
+function mobileLink({ to, label, icon: Icon, end }: (typeof NAV)[number]) {
+  return (
+    <NavLink key={to} to={to} end={end} className={({ isActive }) => cn(MOBILE_ITEM, isActive && "text-accent")}>
+      <Icon className="size-5" aria-hidden="true" />
+      {label}
+    </NavLink>
+  );
+}
+
+function MobileSearch() {
+  const { openSearch } = useSearch();
+  return (
+    <button type="button" onClick={() => openSearch()} className={MOBILE_ITEM}>
+      <Search className="size-5" aria-hidden="true" />
+      Search
+    </button>
+  );
+}
+
 /** Sidebar on desktop, bottom navigation on mobile; the header holds °C/°F, light/dark and the account menu. */
 export function AppShell({ children }: { children: ReactNode }) {
   return (
@@ -120,7 +142,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <div className="min-w-0 flex-1">
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-border/60 bg-background/70 px-4 backdrop-blur-xl sm:px-6">
-          <Logo className="md:invisible" />
+          <Logo className="md:hidden" />
+          {/* Phones search from the bottom nav; the header has no room left at 375px */}
+          <SearchButton className="hidden sm:flex" />
           <div className="flex items-center gap-1 sm:gap-2">
             <UnitsToggle />
             <ColorModeToggle />
@@ -132,20 +156,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         </main>
       </div>
 
-      <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-border bg-card/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden">
-        {NAV.map(({ to, label, icon: Icon, end }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={end}
-            className={({ isActive }) =>
-              cn("flex flex-col items-center gap-1 py-2.5 text-xs font-medium text-muted-foreground", isActive && "text-accent")
-            }
-          >
-            <Icon className="size-5" aria-hidden="true" />
-            {label}
-          </NavLink>
-        ))}
+      <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-card/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden">
+        {NAV.slice(0, 1).map(mobileLink)}
+        <MobileSearch />
+        {NAV.slice(1).map(mobileLink)}
       </nav>
     </div>
   );

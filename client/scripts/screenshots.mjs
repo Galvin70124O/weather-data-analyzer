@@ -66,7 +66,7 @@ async function fakeWeather(page, scenario) {
   });
 }
 
-async function shoot(browser, { name, path, width, mode, state, ready, scenario, fold = false, scrolled = false }) {
+async function shoot(browser, { name, path, width, mode, state, ready, scenario, action, fold = false, scrolled = false, fullPage = true }) {
   if (ONLY && !name.includes(ONLY)) return;
   const context = await browser.newContext({
     viewport: { width, height: width < 600 ? 812 : 900 },
@@ -79,10 +79,11 @@ async function shoot(browser, { name, path, width, mode, state, ready, scenario,
   if (scenario) await fakeWeather(page, SCENARIOS[scenario]);
   await page.goto(BASE + path, { waitUntil: "networkidle" });
   if (ready) await page.waitForSelector(ready, { timeout: 60_000 });
+  if (action) await action(page);
   await page.waitForTimeout(800); // entrance transitions
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   const file = resolve(OUT, `${name}-${width}-${mode}.png`);
-  await page.screenshot({ path: file, fullPage: true, animations: "disabled" });
+  await page.screenshot({ path: file, fullPage, animations: "disabled" });
   console.log(`${overflow > 0 ? `OVERFLOW ${overflow}px ` : ""}${file}`);
   if (fold) await page.screenshot({ path: file.replace(".png", "-fold.png"), animations: "disabled" });
   if (scrolled) {
@@ -108,6 +109,19 @@ try {
           fold: mobile && scenario === "clouds", scrolled: !mobile && scenario === "clouds",
         });
       }
+      await shoot(browser, { name: "dashboard", path: "/", width, mode, state, ready: "a[data-wx]", fold: mobile });
+      await shoot(browser, {
+        name: "search", path: "/", width, mode, state, ready: "a[data-wx]", fullPage: false,   // a dialog: the screen as seen
+        action: async (page) => {
+          await page.keyboard.press("Control+k");
+          await page.keyboard.type("Paris");
+          await page.waitForSelector("[cmdk-item]", { timeout: 30_000 });
+        },
+      });
+      await shoot(browser, { name: "compare", path: `/compare?ids=${ids.join(",")}&days=30`, width, mode, state, ready: ".recharts-surface" });
+      await shoot(browser, { name: "compare-empty", path: "/compare", width, mode, state, ready: "main h1" });
+      await shoot(browser, { name: "history", path: "/history", width, mode, state, ready: "main h1 ~ * , table, ul" });
+      await shoot(browser, { name: "account", path: "/account", width, mode, state, ready: "form" });
     }
   }
 } finally {

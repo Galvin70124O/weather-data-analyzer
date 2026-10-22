@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.deps import CurrentUser, DbSession, SessionFactory
 from app.models import City, FavoriteCity, RecentSearch, WeatherSnapshot
-from app.schemas.weather import DashboardOut, FavoriteIn, FavoriteOut, RecentSearchOut, SnapshotOut
+from app.schemas.weather import CityOut, DashboardOut, FavoriteIn, FavoriteOut, RecentSearchOut, SnapshotOut
 from app.services import openweather
 from app.services.errors import UpstreamError
 from app.services.openweather_parse import parse_current
@@ -79,11 +79,21 @@ def clear_recent_searches(db: DbSession, user: CurrentUser) -> None:
 
 @router.get("/history", response_model=list[SnapshotOut])
 def history(db: DbSession, user: CurrentUser, city_id: int | None = None,
-            limit: Annotated[int, Query(ge=1, le=500)] = 100) -> list[WeatherSnapshot]:
+            limit: Annotated[int, Query(ge=1, le=500)] = 100,
+            offset: Annotated[int, Query(ge=0)] = 0) -> list[WeatherSnapshot]:
+    """Newest first. Page with limit/offset (ask for one more than a page to know if there is a next)."""
     query = select(WeatherSnapshot).where(WeatherSnapshot.user_id == user.id)
     if city_id is not None:
         query = query.where(WeatherSnapshot.city_id == city_id)
-    return list(db.scalars(query.order_by(WeatherSnapshot.observed_at.desc()).limit(limit)))
+    order = (WeatherSnapshot.observed_at.desc(), WeatherSnapshot.id.desc())    # id: stable pages
+    return list(db.scalars(query.order_by(*order).offset(offset).limit(limit)))
+
+
+@router.get("/history/cities", response_model=list[CityOut])
+def history_cities(db: DbSession, user: CurrentUser) -> list[City]:
+    """The cities the user has saved readings for (for the History filter), by name."""
+    ids = select(WeatherSnapshot.city_id).where(WeatherSnapshot.user_id == user.id).distinct()
+    return list(db.scalars(select(City).where(City.id.in_(ids)).order_by(City.name, City.country)))
 
 
 # --- dashboard -----------------------------------------------------------------------

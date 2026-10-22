@@ -30,3 +30,30 @@ Work log while you were asleep. Every stage was committed separately (nothing pu
 - **Screenshots of every theme:** `screenshots.mjs` rewrites the real `/weather` answer in the
   browser (condition, icon, time of day), so clear-day, clear-night, rain, clouds and snow are all
   shot from the same city whatever the sky is doing.
+
+## Decisions (stage B)
+
+- **Search (Ctrl+K):** one palette for the whole app (Radix Dialog + cmdk), opened by Ctrl+K/⌘K,
+  the header button (sm and up) and a "Search" tab in the phone bottom nav (the 375px header has no
+  room left). 250 ms debounce, 2-letter minimum (the server's), recent searches when empty.
+  Compare reuses it in "pick" mode.
+- **Layout route:** all logged-in pages share one `RequireLogin` layout (search + shell), so the
+  shell isn't rebuilt on every navigation.
+- **Per-card themes:** dashboard cards carry `data-wx`/`data-tod` themselves. The dark theme
+  selectors now also match nested elements (`.dark [data-wx]`); `tokens.test.ts` checks the nested
+  form equals the `<html>` form.
+- **Colour mode** is a small shared store (header toggle and Account page always agree).
+- **Compare:** cities and period live in the URL (`/compare?ids=3,7&days=90`). City *i* always uses
+  `--series-i` (chip dot, lines, table header). Rain is shown as a running total (daily bars of 3
+  cities over 365 days are unreadable). Light `--series-2` brightened to amber `#d97706` (3.2:1).
+- **History:** the API had only `limit`; I added `offset` (stable order by time, then id) and
+  `GET /api/history/cities` (cities you have readings for, for the filter). Both scoped to the
+  user, with tests. Pages of 20 (asks for 21 to know if there is a next page). Export CSV fetches
+  every matching reading in batches of 500. Times are in the viewer's own time zone (a reading is
+  "when you looked"; the CSV has UTC). Phones get a list instead of the table.
+- **City labels:** a state with the same name as the city is left out ("Cairo, EG", not
+  "Cairo, Cairo, EG"), in `City.label`, with a test.
+- **Stale badge:** City page, dashboard cards and Compare. Saved readings (History) are records,
+  so "stale" doesn't apply there.
+- **Account:** units and appearance as segmented controls, change password (same rules as the
+  server; other sessions are signed out by the server), log out.

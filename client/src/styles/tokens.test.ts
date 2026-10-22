@@ -12,13 +12,17 @@ const css = readFileSync(resolve(process.cwd(), "src/styles/globals.css"), "utf-
 type Vars = Record<string, string>;
 type Rgba = [number, number, number, number];
 
+/** The declarations of the rule whose selector list contains exactly `selector`. */
 function block(selector: string): Vars {
-  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const match = new RegExp(`(?:^|\\n|\\})\\s*${escaped}\\s*\\{([^}]*)\\}`).exec(css);
-  if (!match) throw new Error(`No CSS block for ${selector}`);
-  const vars: Vars = {};
-  for (const [, name, value] of match[1]!.matchAll(/--([\w-]+)\s*:\s*([^;]+);/g)) vars[name!] = value!.trim();
-  return vars;
+  for (const [, selectors, body] of css.matchAll(/([^{}]+)\{([^}]*)\}/g)) {
+    // Text before a rule may still hold `@import ...;` statements: the selector list follows the last ";"
+    const list = selectors!.split(";").pop()!.split(",").map((s) => s.trim());
+    if (!list.includes(selector)) continue;
+    const vars: Vars = {};
+    for (const [, name, value] of body!.matchAll(/--([\w-]+)\s*:\s*([^;]+);/g)) vars[name!] = value!.trim();
+    return vars;
+  }
+  throw new Error(`No CSS block for ${selector}`);
 }
 
 function parse(color: string): Rgba {
@@ -114,6 +118,12 @@ describe.each(cases)("tokens: $name", ({ vars }) => {
     for (const name of ["chart-line", "chart-rain", "chart-warm", "chart-cool", "series-1", "series-2", "series-3"]) {
       expect(contrast(c(name), c("card"))).toBeGreaterThanOrEqual(3);
     }
+  });
+});
+
+describe("per-element themes (dashboard cards)", () => {
+  it.each(WX)("dark %s is defined for <html> and for a nested element alike", (wx) => {
+    expect(block(`.dark [data-wx="${wx}"]`)).toEqual(block(`.dark[data-wx="${wx}"]`));
   });
 });
 

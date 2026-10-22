@@ -106,6 +106,25 @@ def test_history_is_private_and_filterable(alice, bob, owm):
     assert bob.get("/api/history", params={"city_id": london}).json() == []
 
 
+def test_history_pages_and_lists_its_cities(alice, bob, owm):
+    london, london_on = city_ids(alice)
+    # One reading per city (a second look within 10 minutes is served from the cache)
+    for i, city in enumerate([london, london_on]):
+        owm.get("/data/2.5/weather").respond(json=current_answer(dt=1_761_200_000 + i * 3600, temp=10.0 + i))
+        alice.get(f"/api/cities/{city}/weather")
+    first = alice.get("/api/history", params={"limit": 1}).json()
+    second = alice.get("/api/history", params={"limit": 1, "offset": 1}).json()
+    third = alice.get("/api/history", params={"limit": 1, "offset": 2}).json()
+    assert [h["temp_c"] for h in first] == [11.0]                 # newest first
+    assert [h["temp_c"] for h in second] == [10.0]
+    assert third == []
+    assert alice.get("/api/history", params={"offset": -1}).status_code == 422
+
+    cities = alice.get("/api/history/cities").json()
+    assert sorted(c["id"] for c in cities) == sorted([london, london_on])
+    assert bob.get("/api/history/cities").json() == []
+
+
 # --- dashboard ------------------------------------------------------------------------
 
 def test_dashboard(alice, owm):

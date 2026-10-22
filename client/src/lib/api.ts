@@ -6,9 +6,13 @@
 import type {
   AnalyticsResponse,
   City,
+  CompareResponse,
   CurrentWeatherResponse,
+  DashboardResponse,
   ForecastResponse,
   Period,
+  RecentSearch,
+  Snapshot,
   Units,
   User,
 } from "./types";
@@ -66,4 +70,17 @@ export const api = {
   favorites: () => request<{ city: City; created_at: string }[]>("GET", "/api/favorites"),
   addFavorite: (cityId: number) => request<{ city: City }>("POST", "/api/favorites", { city_id: cityId }),
   removeFavorite: (cityId: number) => request<void>("DELETE", `/api/favorites/${cityId}`),
+
+  dashboard: () => request<DashboardResponse>("GET", "/api/dashboard"),
+  recentSearches: () => request<RecentSearch[]>("GET", "/api/searches/recent"),
+  clearRecentSearches: () => request<void>("DELETE", "/api/searches/recent"),
+  history: ({ cityId, limit, offset }: { cityId?: number | null; limit: number; offset: number }) =>
+    request<Snapshot[]>("GET", `/api/history?${new URLSearchParams({
+      limit: String(limit), offset: String(offset), ...(cityId ? { city_id: String(cityId) } : {}),
+    })}`),
+  historyCities: () => request<City[]>("GET", "/api/history/cities"),
+  compare: (cityIds: number[], days: Period) =>
+    request<CompareResponse>("GET", `/api/analytics/compare?${cityIds.map((id) => `city_id=${id}`).join("&")}&days=${days}`),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<void>("POST", "/api/auth/change-password", { current_password: currentPassword, new_password: newPassword }),
 };

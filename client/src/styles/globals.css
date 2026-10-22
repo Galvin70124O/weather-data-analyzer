@@ -48,7 +48,7 @@
   --chart-rain: #2563eb;
   /* Compare: one colour per city, used everywhere */
   --series-1: #2563eb;
-  --series-2: #b45309;
+  --series-2: #d97706;
   --series-3: #047857;
 
   /* Default weather look (before a city is known) */
@@ -113,7 +113,9 @@
 
 /* ---------- 2. Weather themes (generated and checked by a palette script; tokens.test.ts re-checks) ----------
    --hero-1..3: the City hero / login gradient. --wx-1/--wx-2: the softer page backdrop (hero stops mixed
-   into the background). [data-tod="night"] darkens every condition except clear-night, which IS the night look. */
+   into the background). [data-tod="night"] darkens every condition except clear-night, which IS the night look.
+   The attributes work on <html> (City page) and on any element inside it (each Dashboard card has its
+   city's own theme), hence the ".dark [data-wx]" descendant form next to ".dark[data-wx]". */
 [data-wx="clear-day"] { --accent: #0369a1; --accent-foreground: #ffffff; --hero-1: #a9d4ff; --hero-2: #d3e9ff; --hero-3: #ffd98a; --wx-1: #cbe4fd; --wx-2: #fae6bd; }
 [data-wx="clear-day"][data-tod="night"] { --hero-1: #9ec4f6; --hero-2: #c3d7f6; --hero-3: #ebc88c; --wx-1: #c5dbf8; --wx-2: #f0ddbe; }
 [data-wx="clear-night"] { --accent: #4338ca; --accent-foreground: #ffffff; --hero-1: #c3c8f7; --hero-2: #d6cdf5; --hero-3: #b9c2ee; --wx-1: #daddf9; --wx-2: #d4daf4; }
@@ -128,19 +130,19 @@
 [data-wx="mist"] { --accent: #3f3f46; --accent-foreground: #ffffff; --hero-1: #d9d9dd; --hero-2: #e9e7e3; --hero-3: #cfd1d4; --wx-1: #e6e6ea; --wx-2: #e0e2e6; }
 [data-wx="mist"][data-tod="night"] { --hero-1: #c9c8d7; --hero-2: #d7d5dd; --hero-3: #c0c1cf; --wx-1: #dddde7; --wx-2: #d8d9e3; }
 
-.dark[data-wx="clear-day"] { --accent: #38bdf8; --accent-foreground: #04121f; --hero-1: #0f3b6b; --hero-2: #123a5c; --hero-3: #4a3a12; --wx-1: #0d294b; --wx-2: #302916; }
-.dark[data-wx="clear-day"][data-tod="night"] { --hero-1: #0b2a4e; --hero-2: #0d2943; --hero-3: #332911; --wx-1: #0b1f3a; --wx-2: #231f15; }
-.dark[data-wx="clear-night"] { --accent: #a5b4fc; --accent-foreground: #0b0f24; --hero-1: #1e1b5e; --hero-2: #2a1f63; --hero-3: #120f3a; --wx-1: #161644; --wx-2: #0f0f2e; }
-.dark[data-wx="clouds"] { --accent: #cbd5e1; --accent-foreground: #0b1220; --hero-1: #253247; --hero-2: #2c3a50; --hero-3: #1b2536; --wx-1: #1a2436; --wx-2: #141c2c; }
-.dark[data-wx="clouds"][data-tod="night"] { --hero-1: #1a2435; --hero-2: #1f293b; --hero-3: #131b2a; --wx-1: #141b2b; --wx-2: #101624; }
-.dark[data-wx="rain"] { --accent: #67e8f9; --accent-foreground: #031417; --hero-1: #123447; --hero-2: #1a3442; --hero-3: #0f2230; --wx-1: #0f2536; --wx-2: #0d1a28; }
-.dark[data-wx="rain"][data-tod="night"] { --hero-1: #0d2535; --hero-2: #132532; --hero-3: #0b1925; --wx-1: #0c1c2b; --wx-2: #0b1522; }
-.dark[data-wx="storm"] { --accent: #c4b5fd; --accent-foreground: #160b2e; --hero-1: #2a1d55; --hero-2: #25204a; --hero-3: #141235; --wx-1: #1d173e; --wx-2: #10112b; }
-.dark[data-wx="storm"][data-tod="night"] { --hero-1: #1e153f; --hero-2: #1a1737; --hero-3: #0f0e29; --wx-1: #161331; --wx-2: #0d0e24; }
-.dark[data-wx="snow"] { --accent: #bae6fd; --accent-foreground: #06131f; --hero-1: #22364f; --hero-2: #284059; --hero-3: #18263a; --wx-1: #18263b; --wx-2: #121d2e; }
-.dark[data-wx="snow"][data-tod="night"] { --hero-1: #18263b; --hero-2: #1c2d41; --hero-3: #111b2c; --wx-1: #121d2e; --wx-2: #0e1626; }
-.dark[data-wx="mist"] { --accent: #d4d4d8; --accent-foreground: #111113; --hero-1: #2a2a31; --hero-2: #33313a; --hero-3: #1e1e24; --wx-1: #1d1f29; --wx-2: #161821; }
-.dark[data-wx="mist"][data-tod="night"] { --hero-1: #1e1e26; --hero-2: #24232c; --hero-3: #15161d; --wx-1: #161822; --wx-2: #11131d; }
+.dark[data-wx="clear-day"], .dark [data-wx="clear-day"] { --accent: #38bdf8; --accent-foreground: #04121f; --hero-1: #0f3b6b; --hero-2: #123a5c; --hero-3: #4a3a12; --wx-1: #0d294b; --wx-2: #302916; }
+.dark[data-wx="clear-day"][data-tod="night"], .dark [data-wx="clear-day"][data-tod="night"] { --hero-1: #0b2a4e; --hero-2: #0d2943; --hero-3: #332911; --wx-1: #0b1f3a; --wx-2: #231f15; }
+.dark[data-wx="clear-night"], .dark [data-wx="clear-night"] { --accent: #a5b4fc; --accent-foreground: #0b0f24; --hero-1: #1e1b5e; --hero-2: #2a1f63; --hero-3: #120f3a; --wx-1: #161644; --wx-2: #0f0f2e; }
+.dark[data-wx="clouds"], .dark [data-wx="clouds"] { --accent: #cbd5e1; --accent-foreground: #0b1220; --hero-1: #253247; --hero-2: #2c3a50; --hero-3: #1b2536; --wx-1: #1a2436; --wx-2: #141c2c; }
+.dark[data-wx="clouds"][data-tod="night"], .dark [data-wx="clouds"][data-tod="night"] { --hero-1: #1a2435; --hero-2: #1f293b; --hero-3: #131b2a; --wx-1: #141b2b; --wx-2: #101624; }
+.dark[data-wx="rain"], .dark [data-wx="rain"] { --accent: #67e8f9; --accent-foreground: #031417; --hero-1: #123447; --hero-2: #1a3442; --hero-3: #0f2230; --wx-1: #0f2536; --wx-2: #0d1a28; }
+.dark[data-wx="rain"][data-tod="night"], .dark [data-wx="rain"][data-tod="night"] { --hero-1: #0d2535; --hero-2: #132532; --hero-3: #0b1925; --wx-1: #0c1c2b; --wx-2: #0b1522; }
+.dark[data-wx="storm"], .dark [data-wx="storm"] { --accent: #c4b5fd; --accent-foreground: #160b2e; --hero-1: #2a1d55; --hero-2: #25204a; --hero-3: #141235; --wx-1: #1d173e; --wx-2: #10112b; }
+.dark[data-wx="storm"][data-tod="night"], .dark [data-wx="storm"][data-tod="night"] { --hero-1: #1e153f; --hero-2: #1a1737; --hero-3: #0f0e29; --wx-1: #161331; --wx-2: #0d0e24; }
+.dark[data-wx="snow"], .dark [data-wx="snow"] { --accent: #bae6fd; --accent-foreground: #06131f; --hero-1: #22364f; --hero-2: #284059; --hero-3: #18263a; --wx-1: #18263b; --wx-2: #121d2e; }
+.dark[data-wx="snow"][data-tod="night"], .dark [data-wx="snow"][data-tod="night"] { --hero-1: #18263b; --hero-2: #1c2d41; --hero-3: #111b2c; --wx-1: #121d2e; --wx-2: #0e1626; }
+.dark[data-wx="mist"], .dark [data-wx="mist"] { --accent: #d4d4d8; --accent-foreground: #111113; --hero-1: #2a2a31; --hero-2: #33313a; --hero-3: #1e1e24; --wx-1: #1d1f29; --wx-2: #161821; }
+.dark[data-wx="mist"][data-tod="night"], .dark [data-wx="mist"][data-tod="night"] { --hero-1: #1e1e26; --hero-2: #24232c; --hero-3: #15161d; --wx-1: #161822; --wx-2: #11131d; }
 
 /* Map tokens to Tailwind names: bg-background, text-muted-foreground, border-border, ring-accent, ... */
 @theme inline {

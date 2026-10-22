@@ -25,6 +25,9 @@ export const COLORS = {
   series: ["var(--series-1)", "var(--series-2)", "var(--series-3)"],
 } as const;
 
+/** City i always gets series colour i: chips, lines, table headers. */
+export const seriesColor = (index: number): string => COLORS.series[index % COLORS.series.length]!;
+
 const TICK = { fill: COLORS.axis, fontSize: 12 };
 
 /** Props for <XAxis>: dates as "21 Oct", only a few labels so they never overlap. */

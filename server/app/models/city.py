@@ -33,5 +33,6 @@ class City(Base):
 
     @property
     def label(self) -> str:
-        """"London, GB" or "London, Ontario, CA"."""
-        return ", ".join(part for part in [self.name, self.state, self.country] if part)
+        """"London, GB" or "London, Ontario, CA". A state named like the city is left out: "Cairo, EG"."""
+        state = self.state if self.state and self.state.casefold() != self.name.casefold() else None
+        return ", ".join(part for part in [self.name, state, self.country] if part)

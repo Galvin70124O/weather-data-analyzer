@@ -141,3 +141,53 @@ export interface AnalyticsResponse {
 }
 
 export type Period = 30 | 90 | 365;
+
+export interface RecentSearch {
+  city: City;
+  searched_at: string;
+}
+
+export interface DashboardCard {
+  city: City;
+  weather: CurrentWeather | null;     // null: the weather service failed and nothing is cached
+  stale: boolean;
+  error: string | null;
+}
+
+export interface DashboardResponse {
+  username: string;
+  favorites: DashboardCard[];
+  recent: RecentSearch[];
+}
+
+/** One saved reading (taken when the user opened a city). */
+export interface Snapshot {
+  id: number;
+  city: City;
+  observed_at: string;
+  temp_c: number;
+  feels_like_c: number;
+  humidity: number;
+  pressure_hpa: number;
+  wind_speed_ms: number;
+  wind_deg: number | null;
+  condition: string;
+  description: string;
+  icon: string;
+}
+
+export type CompareMetric = "tmean" | "tmean_7d" | "tmin" | "tmax" | "precip" | "humidity" | "wind_max" | "anomaly";
+
+export interface CompareCity {
+  city: City;
+  normals_available: boolean;
+  series: Partial<Record<CompareMetric, (number | null)[]>>;     // one value per date in CompareResponse.dates
+  summary: AnalyticsSummary;
+}
+
+export interface CompareResponse {
+  days: number;
+  dates: string[];
+  cities: CompareCity[];
+  stale: boolean;
+}
