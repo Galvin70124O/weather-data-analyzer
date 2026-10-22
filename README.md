@@ -6,8 +6,8 @@ version is in [`legacy/`](legacy/) until the new one is complete.
 | Phase | Status |
 |---|---|
 | 1. Backend skeleton, database, accounts (register, login, logout, change password, rate limit) | ✅ done |
-| 2. Weather (OpenWeatherMap) + caching | next |
-| 3. Analytics (Open-Meteo history, pandas) | |
+| 2. Weather (OpenWeatherMap): city search, current weather, forecast, favourites, history, caching | ✅ done |
+| 3. Analytics (Open-Meteo history, pandas) | next |
 | 4. Frontend (React + TypeScript + Vite) | |
 | 5. CI + Render deploy + full README | |
 

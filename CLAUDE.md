@@ -1,7 +1,7 @@
 # Weather Data Analyzer v2
 
 Rebuild of a Streamlit app as FastAPI + React. Work happens in phases, with a commit after each:
-1. backend skeleton + DB + auth ✅  2. weather + caching  3. analytics + tests  4. frontend  5. CI + Render deploy + README.
+1. backend skeleton + DB + auth ✅  2. weather + caching ✅  3. analytics + tests  4. frontend  5. CI + Render deploy + README.
 The old Streamlit app lives in `legacy/` until v2 works. Don't edit it; don't delete it yet.
 
 ## Structure
@@ -15,7 +15,9 @@ server/                 FastAPI (Python 3.12)
   app/models/           SQLAlchemy 2 models (one file per table)
   app/schemas/          Pydantic v2 request/response bodies (validation lives here)
   app/routers/          thin route handlers
-  app/services/         logic that talks to the DB or outside APIs (rate_limit, later weather/cache)
+  app/services/         logic that talks to the DB or outside APIs: rate_limit, cache, openweather (HTTP), cities
+  app/services/openweather_parse.py  PURE parsing of OpenWeatherMap JSON (no DB/HTTP), unit-tested
+  app/core/logging.py   redacts appid=... from httpx/httpcore log lines
   app/deps.py           DbSession, CurrentUser, client_ip
   migrations/           Alembic (env.py reads DATABASE_URL from settings)
   tests/                pytest against a real Postgres (TEST_DATABASE_URL)
@@ -51,6 +53,10 @@ alembic check                     # fails if models and migrations differ
 - **Secure cookie:** `settings.secure_cookies` = Secure flag exactly when `ENVIRONMENT=production` (override with `COOKIE_SECURE`; `false` is refused in production).
 - **Cross-site requests:** besides SameSite=Lax, a middleware rejects POST/PUT/PATCH/DELETE to `/api/` without `Content-Type: application/json` (415). The client must send that header on every write, logout included. Never add CORS.
 - **Rate limit:** failed logins are stored in `login_attempts` (5 per account, 20 per IP, per 15 min) so restarts don't reset them. Same for change-password.
+- **Cities:** rows in `cities` are only created from geocoding results (search upserts them and returns ids). The browser only ever sends a `city_id`, never names or coordinates.
+- **Outside APIs:** always through `services/cache.cached_fetch(db, key, ttl, fetch)`. TTLs: geocode 7 d, current 10 min, forecast 1 h (settings). The raw API answer is cached; parsing runs on every request, so parser fixes apply to cached data too. If the API fails and an expired row exists → return it with `stale: true`; otherwise `UpstreamError` → friendly 503 (`UpstreamNotFound` → 404, never served stale).
+- **API key safety:** the key is added only in `openweather._get`. Never log or re-raise httpx exceptions (their text contains the URL with the key): log the endpoint + a reason, `raise ... from None`. httpx loggers are filtered (`appid=***`) and default to WARNING. Tests assert the key never appears in responses or logs.
+- **Side effects:** `GET /api/cities/{id}/weather` records a recent search and a weather snapshot (de-duplicated on observed_at). Forecast and dashboard don't.
 - **Units:** the server stores and computes in metric only. `users.units` (metric/imperial) is a display preference; the client converts.
 - **Secrets:** only in env vars / `.env` (git-ignored). The OpenWeatherMap key stays on the server and must never be sent to the browser.
 - **Tests:** refuse to run unless `TEST_DATABASE_URL` is set and differs from `DATABASE_URL`. The schema is built with the real Alembic migrations; tables are truncated before every test. Outside APIs get mocked (respx), never called.

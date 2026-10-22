@@ -39,6 +39,16 @@ class Settings(BaseSettings):
     # None = follow ENVIRONMENT (Secure in production, not over local http). Can be forced on locally.
     cookie_secure: bool | None = None
 
+    # OpenWeatherMap (current weather, forecast, geocoding). Server-side only: never sent to the browser.
+    openweather_api_key: SecretStr | None = None
+    openweather_base_url: str = "https://api.openweathermap.org"
+    http_timeout_seconds: float = 6.0
+
+    # How long outside API answers are cached (seconds)
+    cache_ttl_geocode: int = 7 * 24 * 3600
+    cache_ttl_current: int = 10 * 60
+    cache_ttl_forecast: int = 60 * 60
+
     # Login rate limit: failed attempts allowed in a sliding window
     login_window_minutes: int = 15
     login_max_failures_per_identifier: int = 5
@@ -48,6 +58,11 @@ class Settings(BaseSettings):
     @classmethod
     def _normalize_url(cls, value: str | None) -> str | None:
         return normalize_database_url(value) if value else value
+
+    @field_validator("openweather_api_key", mode="before")
+    @classmethod
+    def _empty_key_means_not_set(cls, value: object) -> object:
+        return None if isinstance(value, str) and not value.strip() else value
 
     @field_validator("jwt_secret")
     @classmethod

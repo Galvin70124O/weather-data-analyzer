@@ -1,0 +1,99 @@
+"""The logged-in user's favourites, recent searches, saved history and dashboard. All scoped to the user."""
+from typing import Annotated
+
+from fastapi import APIRouter, HTTPException, Query, Response, status
+from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
+
+from app.deps import CurrentUser, DbSession
+from app.models import City, FavoriteCity, RecentSearch, WeatherSnapshot
+from app.schemas.weather import DashboardOut, FavoriteIn, FavoriteOut, RecentSearchOut, SnapshotOut
+from app.services import openweather
+from app.services.errors import UpstreamError
+from app.services.openweather_parse import parse_current
+
+router = APIRouter(prefix="/api", tags=["my cities"])
+
+MAX_FAVORITES = 20
+
+
+# --- favourites ----------------------------------------------------------------------
+
+@router.get("/favorites", response_model=list[FavoriteOut])
+def list_favorites(db: DbSession, user: CurrentUser) -> list[FavoriteCity]:
+    return list(db.scalars(select(FavoriteCity).where(FavoriteCity.user_id == user.id)
+                           .order_by(FavoriteCity.created_at, FavoriteCity.id)))
+
+
+@router.post("/favorites", response_model=FavoriteOut, status_code=status.HTTP_201_CREATED)
+def add_favorite(body: FavoriteIn, response: Response, db: DbSession, user: CurrentUser) -> FavoriteCity:
+    if db.get(City, body.city_id) is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "City not found.")
+    existing = db.scalar(select(FavoriteCity).where(FavoriteCity.user_id == user.id, FavoriteCity.city_id == body.city_id))
+    if existing is not None:
+        response.status_code = status.HTTP_200_OK          # already a favourite: nothing to do
+        return existing
+    count = len(list_favorites(db, user))
+    if count >= MAX_FAVORITES:
+        raise HTTPException(status.HTTP_409_CONFLICT, f"You can have up to {MAX_FAVORITES} favourite cities.")
+    favorite = FavoriteCity(user_id=user.id, city_id=body.city_id)
+    db.add(favorite)
+    try:
+        db.commit()
+    except IntegrityError:                                  # added twice at the same moment
+        db.rollback()
+        response.status_code = status.HTTP_200_OK
+        favorite = db.scalar(select(FavoriteCity).where(FavoriteCity.user_id == user.id, FavoriteCity.city_id == body.city_id))
+    db.refresh(favorite)
+    return favorite
+
+
+@router.delete("/favorites/{city_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_favorite(city_id: int, db: DbSession, user: CurrentUser) -> None:
+    removed = db.execute(delete(FavoriteCity).where(FavoriteCity.user_id == user.id, FavoriteCity.city_id == city_id))
+    db.commit()
+    if removed.rowcount == 0:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "That city isn't one of your favourites.")
+
+
+# --- recent searches -----------------------------------------------------------------
+
+@router.get("/searches/recent", response_model=list[RecentSearchOut])
+def recent_searches(db: DbSession, user: CurrentUser,
+                    limit: Annotated[int, Query(ge=1, le=20)] = 8) -> list[RecentSearch]:
+    return list(db.scalars(select(RecentSearch).where(RecentSearch.user_id == user.id)
+                           .order_by(RecentSearch.searched_at.desc()).limit(limit)))
+
+
+@router.delete("/searches/recent", status_code=status.HTTP_204_NO_CONTENT)
+def clear_recent_searches(db: DbSession, user: CurrentUser) -> None:
+    db.execute(delete(RecentSearch).where(RecentSearch.user_id == user.id))
+    db.commit()
+
+
+# --- history (saved readings) --------------------------------------------------------
+
+@router.get("/history", response_model=list[SnapshotOut])
+def history(db: DbSession, user: CurrentUser, city_id: int | None = None,
+            limit: Annotated[int, Query(ge=1, le=500)] = 100) -> list[WeatherSnapshot]:
+    query = select(WeatherSnapshot).where(WeatherSnapshot.user_id == user.id)
+    if city_id is not None:
+        query = query.where(WeatherSnapshot.city_id == city_id)
+    return list(db.scalars(query.order_by(WeatherSnapshot.observed_at.desc()).limit(limit)))
+
+
+# --- dashboard -----------------------------------------------------------------------
+
+@router.get("/dashboard", response_model=DashboardOut)
+def dashboard(db: DbSession, user: CurrentUser) -> dict:
+    """Greeting, favourite cities with their current weather (cached), and recent searches.
+    Unlike opening a city, this doesn't add anything to recent searches or history."""
+    cards = []
+    for favorite in list_favorites(db, user):
+        city = favorite.city
+        try:
+            result = openweather.current_weather(db, float(city.lat), float(city.lon))
+            cards.append({"city": city, "weather": parse_current(result.data), "stale": result.stale, "error": None})
+        except UpstreamError as error:
+            cards.append({"city": city, "weather": None, "stale": False, "error": error.public_message})
+    return {"username": user.username, "favorites": cards, "recent": recent_searches(db, user, limit=8)}

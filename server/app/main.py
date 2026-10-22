@@ -6,7 +6,9 @@ FastAPI application.
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 
-from app.routers import auth, health, me
+from app.core.logging import configure_logging
+from app.routers import auth, cities, health, me, my_cities
+from app.services.errors import UpstreamError
 
 STATE_CHANGING_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 
@@ -18,6 +20,7 @@ SECURITY_HEADERS = {
 
 
 def create_app() -> FastAPI:
+    configure_logging()
     app = FastAPI(title="Weather Data Analyzer API", version="2.0.0", docs_url="/api/docs", openapi_url="/api/openapi.json")
 
     @app.middleware("http")
@@ -42,9 +45,16 @@ def create_app() -> FastAPI:
             response.headers.setdefault(name, value)
         return response
 
+    @app.exception_handler(UpstreamError)
+    async def upstream_error(request: Request, error: UpstreamError) -> JSONResponse:
+        # A friendly message only: never details from the outside API (they could contain the key)
+        return JSONResponse({"detail": error.public_message}, status_code=error.status_code)
+
     app.include_router(health.router)
     app.include_router(auth.router)
     app.include_router(me.router)
+    app.include_router(cities.router)
+    app.include_router(my_cities.router)
     return app
 
 
