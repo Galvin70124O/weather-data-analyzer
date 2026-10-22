@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
-import { Loader2 } from "lucide-react";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { BarChart3, Eye, EyeOff, History, Loader2, Star } from "lucide-react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { Logo } from "@/components/layout/app-shell";
@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/form";
 import { useLogin, useRegister } from "@/hooks/use-auth";
+import { WeatherIcon } from "@/components/weather/weather-icon";
 import { ApiError } from "@/lib/api";
+import { applyWeatherTheme } from "@/lib/weather-theme";
 
 const USERNAME = /^[A-Za-z0-9._-]{3,32}$/;
 
@@ -22,12 +24,52 @@ export function validateRegistration(username: string, email: string, password: 
   return errors;
 }
 
+/** No city yet, so the login scene follows the visitor's own clock: clear day or clear night. */
+export function visitorScene(now: Date = new Date()): "clear-day" | "clear-night" {
+  const hour = now.getHours();
+  return hour >= 7 && hour < 19 ? "clear-day" : "clear-night";
+}
+
+function useVisitorScene(): "clear-day" | "clear-night" {
+  const [scene] = useState(() => visitorScene());
+  useEffect(() => {
+    applyWeatherTheme({ wx: scene, tod: scene === "clear-day" ? "day" : "night" });
+    return () => applyWeatherTheme(null);
+  }, [scene]);
+  return scene;
+}
+
+const FEATURES = [
+  { icon: Star, text: "Favourite cities with live weather" },
+  { icon: History, text: "30, 90 or 365 days against the 1991–2020 normal" },
+  { icon: BarChart3, text: "Compare up to three cities side by side" },
+];
+
 function AuthLayout({ title, subtitle, children, footer }: { title: string; subtitle: string; children: ReactNode; footer: ReactNode }) {
+  const scene = useVisitorScene();
   return (
-    <div className="grid min-h-dvh place-items-center px-4 py-10">
-      <div className="wx-backdrop" aria-hidden="true" />
+    <div className="grid min-h-dvh lg:grid-cols-2">
+      <div className="wx-scene fixed inset-0 -z-10" aria-hidden="true" />
+      {/* Desktop only: a short pitch on the themed scene */}
+      <aside className="hidden flex-col justify-between p-12 lg:flex">
+        <Logo className="text-lg" />
+        <div className="max-w-md space-y-8">
+          <WeatherIcon code={scene === "clear-day" ? "01d" : "01n"} className="-ml-4 size-36" />
+          <h2 className="text-4xl font-semibold leading-tight tracking-tight">Today&apos;s weather, and how unusual it is.</h2>
+          <ul className="space-y-3">
+            {FEATURES.map(({ icon: Icon, text }) => (
+              <li key={text} className="flex items-center gap-3 text-muted-foreground">
+                <span className="grid size-8 place-items-center rounded-md bg-card/55 text-foreground"><Icon className="size-4" aria-hidden="true" /></span>
+                {text}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <p className="text-sm text-muted-foreground">Weather: OpenWeatherMap · History and normals: Open-Meteo (CC BY 4.0)</p>
+      </aside>
+      <div className="grid place-items-center px-4 py-10">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="w-full max-w-sm">
-        <Logo className="mb-8 justify-center text-lg" />
+        <Logo className="mb-8 justify-center text-lg lg:hidden" />
         <Card glass>
           <CardContent className="space-y-6">
             <div className="space-y-1 text-center">
@@ -39,15 +81,28 @@ function AuthLayout({ title, subtitle, children, footer }: { title: string; subt
         </Card>
         <p className="mt-6 text-center text-sm text-muted-foreground">{footer}</p>
       </motion.div>
+      </div>
     </div>
   );
 }
 
-function Field({ id, label, error, ...input }: { id: string; label: string; error?: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+function Field({ id, label, error, type, ...input }: { id: string; label: string; error?: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+  const [visible, setVisible] = useState(false);
+  const isPassword = type === "password";
   return (
     <div className="space-y-2">
       <Label htmlFor={id}>{label}</Label>
-      <Input id={id} name={id} aria-invalid={error ? true : undefined} aria-describedby={error ? `${id}-error` : undefined} {...input} />
+      <div className="relative">
+        <Input id={id} name={id} type={isPassword && visible ? "text" : type} className={isPassword ? "pr-11" : undefined}
+               aria-invalid={error ? true : undefined} aria-describedby={error ? `${id}-error` : undefined} {...input} />
+        {isPassword && (
+          <button type="button" onClick={() => setVisible(!visible)} aria-pressed={visible}
+                  aria-label={visible ? "Hide password" : "Show password"}
+                  className="absolute inset-y-0 right-0 grid w-11 place-items-center rounded-r-md text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-accent">
+            {visible ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
+          </button>
+        )}
+      </div>
       {error && <p id={`${id}-error`} className="text-sm text-destructive">{error}</p>}
     </div>
   );

@@ -25,7 +25,7 @@
   --glass: rgb(255 255 255 / 0.66);
   --glass-border: rgb(255 255 255 / 0.7);
   --muted: #eef2f7;
-  --muted-foreground: #4a5568;
+  --muted-foreground: #3f4a5c;
   --border: #dfe5ee;
   --input: #cfd7e3;
   --destructive: #b42318;
@@ -36,9 +36,14 @@
 
   /* Charts (shared by every chart) */
   --chart-grid: #e3e8ef;
-  --chart-axis: #4a5568;
-  --chart-band: rgb(181 59 10 / 0.22);
-  --chart-normal: rgb(71 85 105 / 0.16);
+  --chart-axis: #3f4a5c;
+  /* Chart MARKS only need 3:1 (non-text), so they can be brighter than the text colours --warm/--cool */
+  --chart-warm: #ea580c;
+  --chart-cool: #2563eb;
+  --chart-band: rgb(249 115 22 / 0.16);
+  --chart-band-edge: rgb(234 88 12 / 0.5);
+  --chart-normal: rgb(37 99 235 / 0.1);
+  --chart-normal-edge: rgb(37 99 235 / 0.55);
   --chart-line: #0b1220;
   --chart-rain: #2563eb;
   /* Compare: one colour per city, used everywhere */
@@ -51,12 +56,15 @@
   --accent-foreground: #ffffff;
   --wx-1: #e4ecf7;
   --wx-2: #eef2f7;
+  --hero-1: #dfe6f0;
+  --hero-2: #eef2f7;
+  --hero-3: #dde4ee;
 
   --radius: 1rem;
   --shadow-card: 0 1px 2px rgb(15 23 42 / 0.06), 0 8px 24px rgb(15 23 42 / 0.06);
   --shadow-pop: 0 12px 40px rgb(15 23 42 / 0.18);
   /* Meteocons clouds are light grey: a soft shadow keeps them visible on white */
-  --icon-shadow: drop-shadow(0 2px 4px rgb(15 23 42 / 0.16)) drop-shadow(0 0 1px rgb(15 23 42 / 0.22));
+  --icon-shadow: drop-shadow(0 0 0.6px rgb(15 23 42 / 0.55)) drop-shadow(0 3px 6px rgb(15 23 42 / 0.2));
 }
 
 .dark {
@@ -78,8 +86,12 @@
 
   --chart-grid: #1f2a40;
   --chart-axis: #a3aec2;
-  --chart-band: rgb(251 146 60 / 0.28);
-  --chart-normal: rgb(163 174 194 / 0.16);
+  --chart-warm: #fb923c;
+  --chart-cool: #60a5fa;
+  --chart-band: rgb(251 146 60 / 0.13);
+  --chart-band-edge: rgb(251 146 60 / 0.55);
+  --chart-normal: rgb(96 165 250 / 0.13);
+  --chart-normal-edge: rgb(147 197 253 / 0.6);
   --chart-line: #e9eef7;
   --chart-rain: #60a5fa;
   --series-1: #60a5fa;
@@ -90,30 +102,45 @@
   --accent-foreground: #04121f;
   --wx-1: #0d1526;
   --wx-2: #111a2e;
+  --hero-1: #16203a;
+  --hero-2: #141c30;
+  --hero-3: #101727;
 
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.28);
   --shadow-pop: 0 16px 48px rgb(0 0 0 / 0.55);
   --icon-shadow: none;
 }
 
-/* ---------- 2. Weather themes (light, then dark) ---------- */
-[data-wx="clear-day"] { --accent: #0369a1; --accent-foreground: #ffffff; --wx-1: #dbeafe; --wx-2: #fef3c7; }
-[data-wx="clear-night"] { --accent: #4338ca; --accent-foreground: #ffffff; --wx-1: #e0e7ff; --wx-2: #ede9fe; }
-[data-wx="clouds"] { --accent: #334155; --accent-foreground: #ffffff; --wx-1: #e2e8f0; --wx-2: #f1f5f9; }
-[data-wx="rain"] { --accent: #0e7490; --accent-foreground: #ffffff; --wx-1: #cffafe; --wx-2: #e0f2fe; }
-[data-wx="storm"] { --accent: #6d28d9; --accent-foreground: #ffffff; --wx-1: #ede9fe; --wx-2: #e0e7ff; }
-[data-wx="snow"] { --accent: #075985; --accent-foreground: #ffffff; --wx-1: #f0f9ff; --wx-2: #ffffff; }
-[data-wx="mist"] { --accent: #3f3f46; --accent-foreground: #ffffff; --wx-1: #f4f4f5; --wx-2: #e7e5e4; }
-[data-tod="night"]:not([data-wx="clear-night"]) { --wx-1: #e4e8f3; --wx-2: #dde3f0; }
+/* ---------- 2. Weather themes (generated and checked by a palette script; tokens.test.ts re-checks) ----------
+   --hero-1..3: the City hero / login gradient. --wx-1/--wx-2: the softer page backdrop (hero stops mixed
+   into the background). [data-tod="night"] darkens every condition except clear-night, which IS the night look. */
+[data-wx="clear-day"] { --accent: #0369a1; --accent-foreground: #ffffff; --hero-1: #a9d4ff; --hero-2: #d3e9ff; --hero-3: #ffd98a; --wx-1: #cbe4fd; --wx-2: #fae6bd; }
+[data-wx="clear-day"][data-tod="night"] { --hero-1: #9ec4f6; --hero-2: #c3d7f6; --hero-3: #ebc88c; --wx-1: #c5dbf8; --wx-2: #f0ddbe; }
+[data-wx="clear-night"] { --accent: #4338ca; --accent-foreground: #ffffff; --hero-1: #c3c8f7; --hero-2: #d6cdf5; --hero-3: #b9c2ee; --wx-1: #daddf9; --wx-2: #d4daf4; }
+[data-wx="clouds"] { --accent: #334155; --accent-foreground: #ffffff; --hero-1: #c4cfdd; --hero-2: #dde4ec; --hero-3: #bfcad8; --wx-1: #dae1ea; --wx-2: #d7dee8; }
+[data-wx="clouds"][data-tod="night"] { --hero-1: #b6bfd7; --hero-2: #ccd2e5; --hero-3: #b1bbd3; --wx-1: #d2d8e7; --wx-2: #d0d6e5; }
+[data-wx="rain"] { --accent: #155e75; --accent-foreground: #ffffff; --hero-1: #bcd4e1; --hero-2: #d0dde8; --hero-3: #bfcfdc; --wx-1: #d6e4ed; --wx-2: #d7e1ea; }
+[data-wx="rain"][data-tod="night"] { --hero-1: #afc4db; --hero-2: #c1cce1; --hero-3: #b1bfd6; --wx-1: #cedbe9; --wx-2: #d0d8e7; }
+[data-wx="storm"] { --accent: #6d28d9; --accent-foreground: #ffffff; --hero-1: #cec7ee; --hero-2: #dadaf0; --hero-3: #c8c7e8; --wx-1: #e0ddf4; --wx-2: #dcddf1; }
+[data-wx="storm"][data-tod="night"] { --hero-1: #bfb8e7; --hero-2: #cac9e8; --hero-3: #bab8e1; --wx-1: #d7d4f0; --wx-2: #d4d4ed; }
+[data-wx="snow"] { --accent: #075985; --accent-foreground: #ffffff; --hero-1: #dcecfb; --hero-2: #f6fbff; --hero-3: #d2e4f5; --wx-1: #e7f1fb; --wx-2: #e2edf8; }
+[data-wx="snow"][data-tod="night"] { --hero-1: #ccd9f2; --hero-2: #e3e7f6; --hero-3: #c2d2ed; --wx-1: #dee7f6; --wx-2: #d9e3f3; }
+[data-wx="mist"] { --accent: #3f3f46; --accent-foreground: #ffffff; --hero-1: #d9d9dd; --hero-2: #e9e7e3; --hero-3: #cfd1d4; --wx-1: #e6e6ea; --wx-2: #e0e2e6; }
+[data-wx="mist"][data-tod="night"] { --hero-1: #c9c8d7; --hero-2: #d7d5dd; --hero-3: #c0c1cf; --wx-1: #dddde7; --wx-2: #d8d9e3; }
 
-.dark[data-wx="clear-day"] { --accent: #38bdf8; --accent-foreground: #04121f; --wx-1: #0b2340; --wx-2: #2a2414; }
-.dark[data-wx="clear-night"] { --accent: #a5b4fc; --accent-foreground: #0b0f24; --wx-1: #0d1030; --wx-2: #1b1440; }
-.dark[data-wx="clouds"] { --accent: #cbd5e1; --accent-foreground: #0b1220; --wx-1: #121826; --wx-2: #1c2433; }
-.dark[data-wx="rain"] { --accent: #67e8f9; --accent-foreground: #031417; --wx-1: #06202a; --wx-2: #0b2a3a; }
-.dark[data-wx="storm"] { --accent: #c4b5fd; --accent-foreground: #160b2e; --wx-1: #150d2b; --wx-2: #251a45; }
-.dark[data-wx="snow"] { --accent: #bae6fd; --accent-foreground: #06131f; --wx-1: #101b2c; --wx-2: #1b2a40; }
-.dark[data-wx="mist"] { --accent: #d4d4d8; --accent-foreground: #111113; --wx-1: #151518; --wx-2: #23232a; }
-.dark[data-tod="night"]:not([data-wx="clear-night"]) { --wx-1: #0a0f1c; --wx-2: #121a2e; }
+.dark[data-wx="clear-day"] { --accent: #38bdf8; --accent-foreground: #04121f; --hero-1: #0f3b6b; --hero-2: #123a5c; --hero-3: #4a3a12; --wx-1: #0d294b; --wx-2: #302916; }
+.dark[data-wx="clear-day"][data-tod="night"] { --hero-1: #0b2a4e; --hero-2: #0d2943; --hero-3: #332911; --wx-1: #0b1f3a; --wx-2: #231f15; }
+.dark[data-wx="clear-night"] { --accent: #a5b4fc; --accent-foreground: #0b0f24; --hero-1: #1e1b5e; --hero-2: #2a1f63; --hero-3: #120f3a; --wx-1: #161644; --wx-2: #0f0f2e; }
+.dark[data-wx="clouds"] { --accent: #cbd5e1; --accent-foreground: #0b1220; --hero-1: #253247; --hero-2: #2c3a50; --hero-3: #1b2536; --wx-1: #1a2436; --wx-2: #141c2c; }
+.dark[data-wx="clouds"][data-tod="night"] { --hero-1: #1a2435; --hero-2: #1f293b; --hero-3: #131b2a; --wx-1: #141b2b; --wx-2: #101624; }
+.dark[data-wx="rain"] { --accent: #67e8f9; --accent-foreground: #031417; --hero-1: #123447; --hero-2: #1a3442; --hero-3: #0f2230; --wx-1: #0f2536; --wx-2: #0d1a28; }
+.dark[data-wx="rain"][data-tod="night"] { --hero-1: #0d2535; --hero-2: #132532; --hero-3: #0b1925; --wx-1: #0c1c2b; --wx-2: #0b1522; }
+.dark[data-wx="storm"] { --accent: #c4b5fd; --accent-foreground: #160b2e; --hero-1: #2a1d55; --hero-2: #25204a; --hero-3: #141235; --wx-1: #1d173e; --wx-2: #10112b; }
+.dark[data-wx="storm"][data-tod="night"] { --hero-1: #1e153f; --hero-2: #1a1737; --hero-3: #0f0e29; --wx-1: #161331; --wx-2: #0d0e24; }
+.dark[data-wx="snow"] { --accent: #bae6fd; --accent-foreground: #06131f; --hero-1: #22364f; --hero-2: #284059; --hero-3: #18263a; --wx-1: #18263b; --wx-2: #121d2e; }
+.dark[data-wx="snow"][data-tod="night"] { --hero-1: #18263b; --hero-2: #1c2d41; --hero-3: #111b2c; --wx-1: #121d2e; --wx-2: #0e1626; }
+.dark[data-wx="mist"] { --accent: #d4d4d8; --accent-foreground: #111113; --hero-1: #2a2a31; --hero-2: #33313a; --hero-3: #1e1e24; --wx-1: #1d1f29; --wx-2: #161821; }
+.dark[data-wx="mist"][data-tod="night"] { --hero-1: #1e1e26; --hero-2: #24232c; --hero-3: #15161d; --wx-1: #161822; --wx-2: #11131d; }
 
 /* Map tokens to Tailwind names: bg-background, text-muted-foreground, border-border, ring-accent, ... */
 @theme inline {
@@ -137,6 +164,8 @@
   --color-success: var(--success);
   --color-warm: var(--warm);
   --color-cool: var(--cool);
+  --color-chart-warm: var(--chart-warm);
+  --color-chart-cool: var(--chart-cool);
   --color-series-1: var(--series-1);
   --color-series-2: var(--series-2);
   --color-series-3: var(--series-3);
@@ -164,6 +193,18 @@
   .num { font-variant-numeric: tabular-nums; }
   .wx-icon { filter: var(--icon-shadow); }
   :focus-visible { @apply outline-2 outline-offset-2 outline-accent; }
+}
+
+/* The City hero card and the login scene: a clear gradient for the condition and time of day */
+.wx-hero {
+  background:
+    radial-gradient(120% 140% at 100% 0%, var(--hero-3), transparent 60%),
+    linear-gradient(135deg, var(--hero-1), var(--hero-2));
+}
+.wx-scene {
+  background:
+    radial-gradient(900px 600px at 85% 10%, var(--hero-3), transparent 70%),
+    linear-gradient(160deg, var(--hero-1), var(--hero-2) 55%, var(--background));
 }
 
 /* The weather backdrop behind the whole app: a subtle gradient from the theme's two stops */

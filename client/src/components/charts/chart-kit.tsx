@@ -17,8 +17,10 @@ export const COLORS = {
   normal: "var(--chart-normal)",
   line: "var(--chart-line)",
   muted: "var(--muted-foreground)",
-  warm: "var(--warm)",
-  cool: "var(--cool)",
+  warm: "var(--chart-warm)",
+  cool: "var(--chart-cool)",
+  normalEdge: "var(--chart-normal-edge)",
+  bandEdge: "var(--chart-band-edge)",
   rain: "var(--chart-rain)",
   series: ["var(--series-1)", "var(--series-2)", "var(--series-3)"],
 } as const;
@@ -36,6 +38,9 @@ export function dateAxis(count: number) {
     // Evenly spaced labels; Recharts drops more of them when the chart is narrow (phones)
     interval: count > 6 ? ("equidistantPreserveStart" as const) : 0,
     minTickGap: 40,
+    tickMargin: 8,
+    // Keeps the first and last date clear of the y-axis labels in the corners
+    padding: { left: 18, right: 10 },
   } as const;
 }
 
@@ -77,10 +82,10 @@ export function ChartTooltip<T extends { date: string }>({ active, payload, rows
   );
 }
 
-export function LegendItem({ color, label, kind = "swatch" }: { color: string; label: string; kind?: "swatch" | "line" | "dash" }) {
+export function LegendItem({ color, label, kind = "swatch", edge }: { color: string; label: string; kind?: "swatch" | "line" | "dash"; edge?: string }) {
   return (
     <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-      {kind === "swatch" && <span className="h-2.5 w-3.5 rounded-sm" style={{ background: color }} aria-hidden="true" />}
+      {kind === "swatch" && <span className="h-2.5 w-3.5 rounded-sm" style={{ background: color, border: edge ? `1px dashed ${edge}` : undefined }} aria-hidden="true" />}
       {kind === "line" && <span className="h-0.5 w-4 rounded-full" style={{ background: color }} aria-hidden="true" />}
       {kind === "dash" && <span className="w-4 border-t-2 border-dashed" style={{ borderColor: color }} aria-hidden="true" />}
       {label}

@@ -12,11 +12,11 @@ import { compass, formatTemp, formatWind } from "@/lib/units";
 
 export function StatChip({ icon, label, value, title }: { icon: ReactNode; label: string; value: ReactNode; title?: string }) {
   return (
-    <div className="flex min-w-0 items-center gap-2.5 rounded-md border border-glass-border bg-card/50 px-2.5 py-2.5 sm:gap-3 sm:px-3" title={title}>
+    <div className="flex min-w-0 items-center gap-2.5 rounded-md border border-border/70 bg-card/55 px-2.5 py-2.5 sm:gap-3 sm:px-3" title={title}>
       <span className="text-muted-foreground [&_svg]:size-4" aria-hidden="true">{icon}</span>
       <div className="min-w-0">
         <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="num text-sm font-semibold leading-snug">{value}</p>
+        <p className="num whitespace-nowrap text-sm font-semibold">{value}</p>
       </div>
     </div>
   );
@@ -52,7 +52,7 @@ export function CityHero({ city, weather, today, units, stale, isFavorite, onTog
 
   return (
     <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} aria-labelledby="city-name" className={className}>
-      <Card glass className="h-full overflow-hidden">
+      <Card className="wx-hero h-full overflow-hidden border-border/60">
         <div className="flex flex-col gap-6 p-5 sm:p-8">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
@@ -95,9 +95,9 @@ export function CityHero({ city, weather, today, units, stale, isFavorite, onTog
             <StatChip icon={<Droplets />} label="Humidity" value={`${weather.humidity}%`} />
             <StatChip
               icon={<Wind />}
-              label="Wind"
+              label={weather.wind_deg === null ? "Wind" : `Wind · ${compass(weather.wind_deg)}`}
               title={weather.wind_gust_ms ? `Gusts ${formatWind(weather.wind_gust_ms, units)}` : undefined}
-              value={<>{windArrow} {formatWind(weather.wind_speed_ms, units)} {compass(weather.wind_deg)}</>}
+              value={<>{windArrow} {formatWind(weather.wind_speed_ms, units)}</>}
             />
             <StatChip icon={<Gauge />} label="Pressure" value={`${weather.pressure_hpa} hPa`} />
             <StatChip icon={<Cloud />} label="Cloud cover" value={weather.clouds_pct === null ? "–" : `${weather.clouds_pct}%`} />

@@ -1,11 +1,13 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import userEvent from "@testing-library/user-event";
 
 import { CityHero } from "@/components/weather/city-hero";
 import { rangeBar } from "@/components/weather/forecast";
 import { iconSource, stillSvg } from "@/components/weather/weather-icon";
 import type { City, CurrentWeather } from "@/lib/types";
-import { safeNext, validateRegistration } from "@/pages/auth-pages";
+import { LoginPage, safeNext, validateRegistration, visitorScene } from "@/pages/auth-pages";
 
 describe("weather icons", () => {
   it("removes every animation tag for reduced motion and keeps the drawing", () => {
@@ -105,5 +107,38 @@ describe("safeNext (login redirect)", () => {
     expect(safeNext("https://evil.example")).toBe("/");
     expect(safeNext("//evil.example")).toBe("/");
     expect(safeNext("/\\evil.example")).toBe("/");
+  });
+});
+
+describe("login page", () => {
+  function renderLogin() {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter><LoginPage /></MemoryRouter>
+      </QueryClientProvider>,
+    );
+  }
+
+  it("shows and hides the password", async () => {
+    renderLogin();
+    const input = screen.getByLabelText("Password");
+    expect(input).toHaveAttribute("type", "password");
+    await userEvent.click(screen.getByRole("button", { name: "Show password" }));
+    expect(input).toHaveAttribute("type", "text");
+    await userEvent.click(screen.getByRole("button", { name: "Hide password" }));
+    expect(input).toHaveAttribute("type", "password");
+  });
+
+  it("explains empty fields instead of disabling the button", async () => {
+    renderLogin();
+    await userEvent.click(screen.getByRole("button", { name: /log in/i }));
+    expect(screen.getByText("Enter your username or email.")).toBeInTheDocument();
+    expect(screen.getByText("Enter your password.")).toBeInTheDocument();
+  });
+
+  it("themes the scene by the visitor's clock", () => {
+    expect(visitorScene(new Date(2026, 0, 1, 12))).toBe("clear-day");
+    expect(visitorScene(new Date(2026, 0, 1, 22))).toBe("clear-night");
+    expect(visitorScene(new Date(2026, 0, 1, 6))).toBe("clear-night");
   });
 });

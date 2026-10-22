@@ -89,13 +89,14 @@ function UserMenu() {
 /** Sidebar on desktop, bottom navigation on mobile; the header holds °C/°F, light/dark and the account menu. */
 export function AppShell({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-dvh">
+    <div className="min-h-dvh md:flex">
       <div className="wx-backdrop" aria-hidden="true" />
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-card focus:px-3 focus:py-2">
         Skip to content
       </a>
 
-      <aside className="fixed inset-y-0 left-0 hidden w-60 flex-col gap-6 border-r border-border bg-card/70 p-4 backdrop-blur-xl md:flex">
+      <aside className="hidden w-60 shrink-0 border-r border-border bg-card/70 backdrop-blur-xl md:block">
+        <div className="sticky top-0 flex h-screen flex-col gap-6 p-4">
         <Logo className="px-2 pt-1" />
         <nav aria-label="Main" className="flex flex-col gap-1">
           {NAV.map(({ to, label, icon: Icon, end }) => (
@@ -114,9 +115,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             </NavLink>
           ))}
         </nav>
+        </div>
       </aside>
 
-      <div className="md:pl-60">
+      <div className="min-w-0 flex-1">
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-border/60 bg-background/70 px-4 backdrop-blur-xl sm:px-6">
           <Logo className="md:invisible" />
           <div className="flex items-center gap-1 sm:gap-2">

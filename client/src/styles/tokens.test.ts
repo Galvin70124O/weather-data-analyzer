@@ -57,7 +57,7 @@ function tokens(mode: "light" | "dark", wx: (typeof WX)[number] | null, night: b
   const dark = mode === "dark" ? ".dark" : "";
   let vars = { ...block(":root"), ...(dark ? block(".dark") : {}) };
   if (wx) vars = { ...vars, ...block(`${dark}[data-wx="${wx}"]`) };
-  if (wx && night && wx !== "clear-night") vars = { ...vars, ...block(`${dark}[data-tod="night"]:not([data-wx="clear-night"])`) };
+  if (wx && night && wx !== "clear-night") vars = { ...vars, ...block(`${dark}[data-wx="${wx}"][data-tod="night"]`) };
   return vars;
 }
 
@@ -71,15 +71,24 @@ describe.each(cases)("tokens: $name", ({ vars }) => {
   const background = c("background");
   // Everything the page's text can sit on: plain surfaces, the gradient stops, and glass over each of them
   const pageSurfaces = [background, over(c("wx-1"), background), over(c("wx-2"), background)];
+  // The City hero / login scene gradient, with the stat chips (card at 55%) and glass cards on top of it
+  const heroStops = [c("hero-1"), c("hero-2"), c("hero-3")];
   const surfaces = [
     ...pageSurfaces,
     c("card"),
     c("muted"),
     ...pageSurfaces.map((s) => over(c("glass"), s)),
+    ...heroStops,
+    ...heroStops.map((s) => over([...c("card").slice(0, 3), 0.55] as Rgba, s)),
+    ...heroStops.map((s) => over(c("glass"), s)),
   ];
 
   it.each(["foreground", "muted-foreground"])("%s text is AA (4.5:1) on every surface", (name) => {
     for (const surface of surfaces) expect(contrast(c(name), surface)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("every weather theme defines its hero gradient", () => {
+    for (const name of ["hero-1", "hero-2", "hero-3"]) expect(vars[name]).toMatch(/^#[0-9a-f]{6}$/i);
   });
 
   it("accent-foreground is readable on accent (buttons, active °C/°F)", () => {
@@ -102,7 +111,7 @@ describe.each(cases)("tokens: $name", ({ vars }) => {
 
   it("chart axis text is AA and chart marks are 3:1 on cards", () => {
     expect(contrast(c("chart-axis"), c("card"))).toBeGreaterThanOrEqual(4.5);
-    for (const name of ["chart-line", "chart-rain", "warm", "cool", "series-1", "series-2", "series-3"]) {
+    for (const name of ["chart-line", "chart-rain", "chart-warm", "chart-cool", "series-1", "series-2", "series-3"]) {
       expect(contrast(c(name), c("card"))).toBeGreaterThanOrEqual(3);
     }
   });

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { WeatherIcon } from "@/components/weather/weather-icon";
 import { localHour, weekdayShort } from "@/lib/time";
 import type { DailyForecast as Day, HourlyStep, Units } from "@/lib/types";
-import { formatTemp, temp } from "@/lib/units";
+import { formatRain, formatTemp, temp } from "@/lib/units";
 
 /** The next 24 hours in 3-hour steps; scrolls sideways on small screens. */
 export function HourlyStrip({ hours, offset, units, className }: { hours: HourlyStep[]; offset: number; units: Units; className?: string }) {
@@ -51,15 +51,17 @@ export function DailyForecast({ days, units, className }: { days: Day[]; units: 
           {days.map((day, index) => {
             const bar = rangeBar(mins[index] ?? 0, maxes[index] ?? 0, weekMin, weekMax);
             return (
-              <li key={day.date} className="grid grid-cols-[3.25rem_2.5rem_2.75rem_2.5rem_1fr_2.5rem] items-center gap-2 py-2.5 sm:grid-cols-[4rem_2.75rem_3rem_2.5rem_1fr_2.5rem] sm:gap-3 xl:py-3.5">
+              <li key={day.date} className="grid grid-cols-[3rem_2.25rem_2.25rem_2.25rem_1fr_2.25rem] items-center gap-2 py-2.5 sm:grid-cols-[4rem_2.75rem_3rem_2.5rem_1fr_2.5rem] sm:gap-3 xl:py-3">
                 <span className="text-sm font-medium">{index === 0 ? "Today" : weekdayShort(day.date)}</span>
                 <WeatherIcon code={day.icon} label={day.description} className="size-10" />
-                <span className={`num text-xs ${day.pop_max >= 0.2 ? "text-cool" : "text-muted-foreground"}`}>
-                  {day.pop_max >= 0.2 ? `${Math.round(day.pop_max * 100)}%` : ""}
+                {/* Chance of rain and how much, only when it is likely to matter */}
+                <span className="num flex flex-col text-xs leading-tight text-cool">
+                  {day.pop_max >= 0.2 && <span>{Math.round(day.pop_max * 100)}%</span>}
+                  {day.rain_mm >= 0.1 && <span className="hidden text-muted-foreground sm:inline">{formatRain(day.rain_mm, units)}</span>}
                 </span>
                 <span className="num text-right text-sm text-muted-foreground">{formatTemp(day.temp_min_c, units)}</span>
                 <span className="relative h-1.5 rounded-full bg-muted" aria-hidden="true">
-                  <span className="absolute inset-y-0 rounded-full bg-gradient-to-r from-cool to-warm"
+                  <span className="absolute inset-y-0 rounded-full bg-gradient-to-r from-chart-cool to-chart-warm"
                         style={{ left: `${bar.left}%`, width: `${bar.width}%` }} />
                 </span>
                 <span className="num text-sm font-semibold">{formatTemp(day.temp_max_c, units)}</span>

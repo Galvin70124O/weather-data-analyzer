@@ -71,7 +71,7 @@ export function TemperatureChart({ days, units, cityName, hasNormals }: { days: 
       summary={summary}
       legend={<>
         <LegendItem color={COLORS.band} label="Low–high" />
-        {hasNormals && <LegendItem color={COLORS.normal} label="Normal range" />}
+        {hasNormals && <LegendItem color={COLORS.normal} edge={COLORS.normalEdge} label="Normal range" />}
         <LegendItem color={COLORS.line} label="7-day mean" kind="line" />
         {hasNormals && <LegendItem color={COLORS.muted} label="Normal mean" kind="dash" />}
       </>}
@@ -92,8 +92,8 @@ export function TemperatureChart({ days, units, cityName, hasNormals }: { days: 
               ]} />
             )}
           />
-          {hasNormals && <Area dataKey="normalBand" stroke="none" fill={COLORS.normal} isAnimationActive={false} />}
-          <Area dataKey="band" stroke="none" fill={COLORS.band} isAnimationActive={false} />
+          {hasNormals && <Area dataKey="normalBand" stroke={COLORS.normalEdge} strokeWidth={1} strokeDasharray="3 3" fill={COLORS.normal} isAnimationActive={false} />}
+          <Area dataKey="band" stroke={COLORS.bandEdge} strokeWidth={1} fill={COLORS.band} isAnimationActive={false} />
           {hasNormals && <Line dataKey="normalMean" stroke={COLORS.muted} strokeWidth={1.5} strokeDasharray="4 4" dot={false} isAnimationActive={false} />}
           <Line dataKey="tmean7" stroke={COLORS.line} strokeWidth={2} dot={false} isAnimationActive={false} />
         </ComposedChart>

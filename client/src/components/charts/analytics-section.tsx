@@ -59,7 +59,7 @@ export function AnalyticsSection({ cityId, cityName, units }: { cityId: number; 
     <section aria-labelledby="analytics-title" className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 id="analytics-title" className="text-xl font-semibold tracking-tight">History</h2>
+          <h2 id="analytics-title" className="text-xl font-semibold tracking-tight">{days === 365 ? "Past year" : `Past ${days} days`}</h2>
           <p className="text-sm text-muted-foreground">
             {data ? `${shortDate(data.period.start)} – ${shortDate(data.period.end)}` : "The last days, compared with the 1991–2020 normal"}
           </p>
