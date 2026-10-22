@@ -1,5 +1,32 @@
+# Secrets: never commit
 .env
+.env.*
+!.env.example
+
+# Python
 __pycache__/
-*.pyc
-data/*.db
-streamlit*.log
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node / Vite
+node_modules/
+dist/
+*.tsbuildinfo
+coverage/
+playwright-report/
+test-results/
+
+# Local databases and logs (incl. the legacy SQLite file)
+*.db
+*.sqlite3
+*.log
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

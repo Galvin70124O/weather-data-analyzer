@@ -1,0 +1,11 @@
+# Store text files with LF line endings, so scripts run the same on Windows, CI and Render
+* text=auto eol=lf
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+# Binary files: never touch
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff2 binary
+*.db binary
