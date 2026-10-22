@@ -5,7 +5,11 @@ cached_fetch(db, key, ttl, fetch):
   - fresh row       -> return it (no API call)
   - missing/expired -> call fetch(), store the answer for `ttl` seconds, return it
   - fetch() fails   -> return the expired row marked stale=True if there is one, else re-raise
+
+Clean-up: rows that expired more than KEEP_EXPIRED_FOR ago are useless (too old even as a
+stale fallback) and get deleted: once at startup, and at most every PRUNE_EVERY during writes.
 """
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -18,8 +22,13 @@ from sqlalchemy.orm import Session
 from app.models import ApiCache
 from app.services.errors import UpstreamError, UpstreamNotFound
 
+log = logging.getLogger(__name__)
+
 # Expired rows are kept as a fallback for this long, then deleted
 KEEP_EXPIRED_FOR = timedelta(days=30)
+# How often (per server process) a write also checks for rows to delete
+PRUNE_EVERY = timedelta(minutes=10)
+_last_prune: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -54,6 +63,35 @@ def store(db: Session, key: str, data: Any, ttl_seconds: int, now: datetime) -> 
     statement = insert(ApiCache).values(**values)
     db.execute(statement.on_conflict_do_update(index_elements=[ApiCache.key],
                                                set_={k: v for k, v in values.items() if k != "key"}))
-    db.execute(delete(ApiCache).where(ApiCache.expires_at < now - KEEP_EXPIRED_FOR))
     db.commit()
+    maybe_prune(db, now)
 
+
+def prune_expired(db: Session, now: datetime | None = None) -> int:
+    """Delete rows that expired more than KEEP_EXPIRED_FOR ago. Returns how many were deleted."""
+    now = now or datetime.now(UTC)
+    result = db.execute(delete(ApiCache).where(ApiCache.expires_at < now - KEEP_EXPIRED_FOR))
+    db.commit()
+    return result.rowcount
+
+
+def maybe_prune(db: Session, now: datetime | None = None) -> bool:
+    """Prune, but at most once every PRUNE_EVERY per process (usually just a cheap time check)."""
+    global _last_prune
+    now = now or datetime.now(UTC)
+    if _last_prune is not None and now - _last_prune < PRUNE_EVERY:
+        return False
+    _last_prune = now
+    deleted = prune_expired(db, now)
+    if deleted:
+        log.info("api_cache: deleted %s old rows", deleted)
+    return True
+
+
+def prune_at_startup(session_factory: Callable[[], Session]) -> None:
+    """Run once when the server starts. A database problem must never stop the app from starting."""
+    try:
+        with session_factory() as db:
+            maybe_prune(db)
+    except Exception as error:      # noqa: BLE001
+        log.warning("api_cache clean-up at startup skipped: %s", type(error).__name__)

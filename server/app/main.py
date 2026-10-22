@@ -3,11 +3,16 @@ FastAPI application.
 
     uvicorn app.main:app --reload        (from the server/ folder)
 """
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 
 from app.core.logging import configure_logging
+from app.db.session import get_sessionmaker
 from app.routers import auth, cities, health, me, my_cities
+from app.services.cache import prune_at_startup
 from app.services.errors import UpstreamError
 
 STATE_CHANGING_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
@@ -19,9 +24,16 @@ SECURITY_HEADERS = {
 }
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    prune_at_startup(get_sessionmaker())      # delete very old cache rows once per start
+    yield
+
+
 def create_app() -> FastAPI:
     configure_logging()
-    app = FastAPI(title="Weather Data Analyzer API", version="2.0.0", docs_url="/api/docs", openapi_url="/api/openapi.json")
+    app = FastAPI(title="Weather Data Analyzer API", version="2.0.0", docs_url="/api/docs",
+                  openapi_url="/api/openapi.json", lifespan=lifespan)
 
     @app.middleware("http")
     async def require_json_for_writes(request: Request, call_next) -> Response:

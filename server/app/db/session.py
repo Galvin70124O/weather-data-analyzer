@@ -19,6 +19,11 @@ def get_sessionmaker() -> sessionmaker[Session]:
     return sessionmaker(bind=get_engine(), expire_on_commit=False)
 
 
+def get_session_factory() -> sessionmaker[Session]:
+    """FastAPI dependency for code that needs its OWN sessions (e.g. one per worker thread)."""
+    return get_sessionmaker()
+
+
 def get_db() -> Iterator[Session]:
     """FastAPI dependency: a session that is closed after the request."""
     session = get_sessionmaker()()

@@ -131,3 +131,76 @@ def test_dashboard_is_private(alice, bob):
     london, _ = city_ids(alice)
     alice.post("/api/favorites", json={"city_id": london})
     assert bob.get("/api/dashboard").json()["favorites"] == []
+
+
+# --- dashboard in parallel ----------------------------------------------------------------
+
+def add_towns(db, count):
+    from app.models import City
+
+    db.add_all([City(name=f"Town {i}", country="GB", lat=10 + i, lon=20 + i) for i in range(count)])
+    db.commit()
+    return [c.id for c in db.query(City).filter(City.name.like("Town %")).order_by(City.id)]
+
+
+def favorite_all(client, city_ids_):
+    for city_id in city_ids_:
+        assert client.post("/api/favorites", json={"city_id": city_id}).status_code == 201
+
+
+def test_one_failing_city_does_not_break_the_others(alice, db, owm):
+    favorite_all(alice, add_towns(db, 4))
+
+    def answer(request):
+        lat = float(request.url.params["lat"])
+        if lat == 12:                                              # "Town 2" is broken
+            return httpx.Response(500)
+        return httpx.Response(200, json=current_answer(temp=lat))
+
+    owm.get("/data/2.5/weather").mock(side_effect=answer)
+    cards = alice.get("/api/dashboard").json()["favorites"]
+    assert [c["city"]["name"] for c in cards] == ["Town 0", "Town 1", "Town 2", "Town 3"]   # order kept
+    assert [c["weather"]["temp_c"] if c["weather"] else None for c in cards] == [10.0, 11.0, None, 13.0]
+    assert "unavailable" in cards[2]["error"]
+    assert [c["error"] for i, c in enumerate(cards) if i != 2] == [None, None, None]
+
+
+def test_an_unexpected_answer_only_breaks_its_own_card(alice, db, owm):
+    favorite_all(alice, add_towns(db, 2))
+
+    def answer(request):
+        if float(request.url.params["lat"]) == 10:
+            return httpx.Response(200, json={"weird": "shape"})     # parsing this fails
+        return httpx.Response(200, json=current_answer())
+
+    owm.get("/data/2.5/weather").mock(side_effect=answer)
+    cards = alice.get("/api/dashboard").json()["favorites"]
+    assert cards[0]["weather"] is None and cards[0]["error"]
+    assert cards[1]["weather"]["temp_c"] == 14.2
+
+
+def test_dashboard_fetches_in_parallel_but_at_most_5_at_once(alice, db, owm):
+    import threading
+    import time
+
+    from app.routers.my_cities import DASHBOARD_MAX_PARALLEL
+
+    favorite_all(alice, add_towns(db, 9))
+    lock, state = threading.Lock(), {"now": 0, "max": 0}
+
+    def slow_answer(request):
+        with lock:
+            state["now"] += 1
+            state["max"] = max(state["max"], state["now"])
+        time.sleep(0.3)
+        with lock:
+            state["now"] -= 1
+        return httpx.Response(200, json=current_answer())
+
+    owm.get("/data/2.5/weather").mock(side_effect=slow_answer)
+    started = time.perf_counter()
+    cards = alice.get("/api/dashboard").json()["favorites"]
+    elapsed = time.perf_counter() - started
+    assert len(cards) == 9 and all(c["weather"] for c in cards)
+    assert state["max"] == DASHBOARD_MAX_PARALLEL                 # really parallel, and never more than 5
+    assert elapsed < 9 * 0.3                                       # faster than one after another

@@ -1,11 +1,14 @@
 """The logged-in user's favourites, recent searches, saved history and dashboard. All scoped to the user."""
+import asyncio
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, Response, status
 from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session, sessionmaker
 
-from app.deps import CurrentUser, DbSession
+from app.deps import CurrentUser, DbSession, SessionFactory
 from app.models import City, FavoriteCity, RecentSearch, WeatherSnapshot
 from app.schemas.weather import DashboardOut, FavoriteIn, FavoriteOut, RecentSearchOut, SnapshotOut
 from app.services import openweather
@@ -13,6 +16,7 @@ from app.services.errors import UpstreamError
 from app.services.openweather_parse import parse_current
 
 router = APIRouter(prefix="/api", tags=["my cities"])
+log = logging.getLogger(__name__)
 
 MAX_FAVORITES = 20
 
@@ -84,16 +88,35 @@ def history(db: DbSession, user: CurrentUser, city_id: int | None = None,
 
 # --- dashboard -----------------------------------------------------------------------
 
-@router.get("/dashboard", response_model=DashboardOut)
-def dashboard(db: DbSession, user: CurrentUser) -> dict:
-    """Greeting, favourite cities with their current weather (cached), and recent searches.
-    Unlike opening a city, this doesn't add anything to recent searches or history."""
-    cards = []
-    for favorite in list_favorites(db, user):
-        city = favorite.city
-        try:
+DASHBOARD_MAX_PARALLEL = 5      # at most this many weather lookups at the same time
+
+
+def load_card(session_factory: sessionmaker[Session], city: City) -> dict:
+    """One favourite's card. Runs in a worker thread, with its own database session.
+    Never raises: a failing city gets an error message on its own card only."""
+    try:
+        with session_factory() as db:
             result = openweather.current_weather(db, float(city.lat), float(city.lon))
-            cards.append({"city": city, "weather": parse_current(result.data), "stale": result.stale, "error": None})
-        except UpstreamError as error:
-            cards.append({"city": city, "weather": None, "stale": False, "error": error.public_message})
-    return {"username": user.username, "favorites": cards, "recent": recent_searches(db, user, limit=8)}
+        return {"city": city, "weather": parse_current(result.data), "stale": result.stale, "error": None}
+    except UpstreamError as error:
+        return {"city": city, "weather": None, "stale": False, "error": error.public_message}
+    except Exception:            # e.g. an unexpected answer shape: log it, but keep the other cards
+        log.exception("Dashboard card for city %s failed", city.id)
+        return {"city": city, "weather": None, "stale": False, "error": UpstreamError.public_message}
+
+
+@router.get("/dashboard", response_model=DashboardOut)
+async def dashboard(db: DbSession, user: CurrentUser, session_factory: SessionFactory) -> dict:
+    """Greeting, favourite cities with their current weather (cached), and recent searches.
+    The favourites' weather is fetched in parallel (max DASHBOARD_MAX_PARALLEL at once).
+    Unlike opening a city, this doesn't add anything to recent searches or history."""
+    favorites = await asyncio.to_thread(list_favorites, db, user)
+    recent = await asyncio.to_thread(recent_searches, db, user, 8)
+    limit = asyncio.Semaphore(DASHBOARD_MAX_PARALLEL)
+
+    async def card(city: City) -> dict:
+        async with limit:
+            return await asyncio.to_thread(load_card, session_factory, city)
+
+    cards = await asyncio.gather(*(card(favorite.city) for favorite in favorites))
+    return {"username": user.username, "favorites": list(cards), "recent": recent}

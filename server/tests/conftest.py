@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import get_settings
 from app.db.base import Base
-from app.db.session import get_db
+from app.db.session import get_db, get_session_factory
 from app.main import create_app
 
 SERVER_DIR = Path(__file__).resolve().parents[1]
@@ -80,6 +80,7 @@ def app(session_factory: sessionmaker[Session]):
             yield session
 
     application.dependency_overrides[get_db] = test_db
+    application.dependency_overrides[get_session_factory] = lambda: session_factory
     return application
 
 

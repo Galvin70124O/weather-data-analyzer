@@ -7,14 +7,16 @@ filter on current_user.id. Never take a user id from the URL or the request body
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, Request, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import get_settings
 from app.core.security import decode_session_token
-from app.db.session import get_db
+from app.db.session import get_db, get_session_factory
 from app.models import User
 
 DbSession = Annotated[Session, Depends(get_db)]
+# A session is not thread-safe: work running in parallel threads opens its own from this factory
+SessionFactory = Annotated[sessionmaker[Session], Depends(get_session_factory)]
 
 NOT_LOGGED_IN = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You need to log in.")
 
