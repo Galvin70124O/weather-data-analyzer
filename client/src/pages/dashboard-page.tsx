@@ -28,7 +28,7 @@ export function CityCard({ card, units, onRetry }: { card: DashboardCard; units:
   const { city, weather } = card;
   if (!weather) {
     return (
-      <Card className="flex h-full flex-col justify-between gap-4 p-5">
+      <Card className="flex h-full flex-col justify-between gap-4 p-4 sm:p-5">
         <div>
           <p className="font-semibold">{city.name}</p>
           <p className="text-sm text-muted-foreground">{city.label}</p>
@@ -46,7 +46,7 @@ export function CityCard({ card, units, onRetry }: { card: DashboardCard; units:
       to={`/cities/${city.id}`}
       data-wx={theme.wx}
       data-tod={theme.tod}
-      className="wx-hero group flex h-full flex-col justify-between gap-6 rounded-lg border border-border/60 p-5 shadow-card transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      className="wx-hero group flex h-full flex-col justify-between gap-2 rounded-lg border border-border/60 p-4 shadow-card transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:gap-6 sm:p-5"
       aria-label={`${city.label}: ${formatTemp(weather.temp_c, units, true)}, ${weather.description}`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -61,13 +61,15 @@ export function CityCard({ card, units, onRetry }: { card: DashboardCard; units:
           </span>
         </div>
       </div>
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <p className="num text-5xl font-light leading-none tracking-tighter">{formatTemp(weather.temp_c, units)}</p>
-          <p className="mt-2 font-medium capitalize">{weather.description}</p>
+      {/* Phones: icon, temperature and condition on one row; wider: temperature left, icon right */}
+      <div className="flex items-center gap-3 sm:items-end sm:justify-between">
+        <WeatherIcon code={weather.icon} className="-my-1 size-12 shrink-0 sm:order-last sm:-mb-2 sm:-mr-2 sm:size-20" />
+        <p className="num text-4xl font-light leading-none tracking-tighter sm:hidden">{formatTemp(weather.temp_c, units)}</p>
+        <div className="min-w-0">
+          <p className="num hidden text-5xl font-light leading-none tracking-tighter sm:block">{formatTemp(weather.temp_c, units)}</p>
+          <p className="truncate font-medium capitalize sm:mt-2">{weather.description}</p>
           <p className="num text-sm text-muted-foreground">Feels like {formatTemp(weather.feels_like_c, units)}</p>
         </div>
-        <WeatherIcon code={weather.icon} className="-mb-2 -mr-2 size-20" />
       </div>
     </Link>
   );
@@ -124,7 +126,7 @@ export function DashboardPage() {
   const data = dashboard.data;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
@@ -132,7 +134,8 @@ export function DashboardPage() {
           </h1>
           <p className="text-muted-foreground">Your cities right now.</p>
         </div>
-        <Button variant="outline" onClick={() => openSearch()}><Search aria-hidden="true" /> Find a city</Button>
+        {/* Phones search from the bottom nav */}
+        <Button variant="outline" className="hidden sm:inline-flex" onClick={() => openSearch()}><Search aria-hidden="true" /> Find a city</Button>
       </div>
 
       <section aria-labelledby="favourites-title" className="space-y-3">
@@ -143,7 +146,7 @@ export function DashboardPage() {
                       onRetry={() => dashboard.refetch()} />
         )}
         {data && (data.favorites.length ? (
-          <div className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
             {data.favorites.map((card, index) => (
               <motion.div key={card.city.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}>
                 <CityCard card={card} units={units} onRetry={() => dashboard.refetch()} />

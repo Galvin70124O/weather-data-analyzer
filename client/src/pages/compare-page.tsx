@@ -65,9 +65,10 @@ function SummaryTable({ data, units }: { data: CompareResponse; units: Units }) 
               <th scope="col" className="w-[30%] py-2 pr-3 font-medium text-muted-foreground sm:w-1/4"><span className="sr-only">Figure</span></th>
               {data.cities.map((c, k) => (
                 <th key={c.city.id} scope="col" className="py-2 pr-3 font-semibold">
-                  <span className="flex items-center gap-2">
+                  {/* Phones: the dot sits above the name, so the name keeps the column's full width */}
+                  <span className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
                     <span className="size-2.5 shrink-0 rounded-full" style={{ background: seriesColor(k) }} aria-hidden="true" />
-                    <span className="min-w-0 break-words">{c.city.name}</span>
+                    <span className="min-w-0">{c.city.name}</span>
                   </span>
                 </th>
               ))}

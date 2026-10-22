@@ -79,7 +79,7 @@ export function CompareTemperatureChart({ rows, cities, units, days }: { rows: C
   return (
     <ChartCard
       title="Temperature"
-      description="7-day mean of the daily average (starts once 5 days are known)"
+      description="7-day mean of the daily average"
       filename={`compare-temperature-${days}d`}
       rows={rows}
       columns={[...columnsFor(cities, "tmean", (n) => `${n} mean ${u}`), ...columnsFor(cities, "tmean7", (n) => `${n} 7-day mean ${u}`).slice(1)]}

@@ -1,6 +1,7 @@
 import { Droplet } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { WeatherIcon } from "@/components/weather/weather-icon";
 import { localHour, weekdayShort } from "@/lib/time";
 import type { DailyForecast as Day, HourlyStep, Units } from "@/lib/types";
@@ -44,14 +45,15 @@ export function DailyForecast({ days, units, className }: { days: Day[]; units: 
   const weekMin = Math.min(...mins);
   const weekMax = Math.max(...maxes);
   return (
-    <Card className={className}>
+    <Card className={cn("flex flex-col", className)}>
       <CardHeader><CardTitle>5-day forecast</CardTitle></CardHeader>
-      <CardContent className="pt-3 sm:pt-4">
-        <ol className="divide-y divide-border">
+      {/* Beside the hero (xl) the card is as tall as the hero: the rows share that height evenly */}
+      <CardContent className="flex-1 pt-3 sm:pt-4">
+        <ol className="flex h-full flex-col justify-between divide-y divide-border">
           {days.map((day, index) => {
             const bar = rangeBar(mins[index] ?? 0, maxes[index] ?? 0, weekMin, weekMax);
             return (
-              <li key={day.date} className="grid grid-cols-[3rem_2.25rem_2.25rem_2.25rem_1fr_2.25rem] items-center gap-2 py-2.5 sm:grid-cols-[4rem_2.75rem_3rem_2.5rem_1fr_2.5rem] sm:gap-3 xl:py-3">
+              <li key={day.date} className="grid grid-cols-[3rem_2.25rem_2.25rem_2.25rem_1fr_2.25rem] items-center gap-2 py-2.5 sm:grid-cols-[4rem_2.75rem_3rem_2.5rem_1fr_2.5rem] sm:gap-3">
                 <span className="text-sm font-medium">{index === 0 ? "Today" : weekdayShort(day.date)}</span>
                 <WeatherIcon code={day.icon} label={day.description} className="size-10" />
                 {/* Chance of rain and how much, only when it is likely to matter */}

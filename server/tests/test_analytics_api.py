@@ -251,6 +251,7 @@ def test_compare_two_or_three_cities(user, three_cities, archive):
     assert len(body["dates"]) == 30
     for city in body["cities"]:
         assert len(city["series"]["tmean"]) == 30 and len(city["series"]["tmean_7d"]) == 30
+        assert city["series"]["tmean_7d"][0] is not None          # warm-up days: the line starts on day 1
         assert city["normals_available"] is True and city["summary"]["coverage"] == 1.0
 
 

@@ -165,3 +165,22 @@ Things to try by hand:
 
 The screenshot script registers a local account `screenshots` (password `screenshots-demo-pass`)
 with London, Tokyo and Cairo as favourites. Delete it from your dev database if you don't want it.
+
+## Polish before deploy (after the report)
+
+- **Consistent screenshots:** a faked theme now also fakes the hourly "Now" entry, today's row in
+  the 5-day forecast (rain chance and amount), and cloud cover. "Clear sky" shows a sun
+  everywhere and 3% cloud.
+- **Compare starts on day 1:** the server already fetched 6 warm-up days, but `compare_cities`
+  recomputed the 7-day mean on the trimmed window and dropped them. It now keeps the warmed-up
+  mean (unit test + API test: the first value isn't null). The City page was already right.
+- **Compare summary per city:** cities in different time zones can end a day apart (Tokyo's
+  "yesterday" is a day later than London's), and the summary counted the other city's extra date
+  as a missing day ("30 of 31"). Each city is now summarised over its own days (with a test).
+- **Dashboard on phones:** compact cards (icon, temperature and condition on one row, less
+  padding). The "Find a city" button is hidden on phones (Search is in the bottom nav). All three
+  favourites and the recent searches now fit on the first screen.
+- **5-day card:** beside the hero, its rows share the card's height evenly, so both cards end on
+  the same line with no empty band at the bottom.
+- Compare table on phones: the colour dot sits above the city name, so names no longer break
+  mid-word.

@@ -25,13 +25,17 @@ const FAVOURITES = ["London", "Tokyo", "Cairo"];
 const WIDTHS = [375, 1440];
 const MODES = ["light", "dark"];
 
+// clouds = cloud cover %, pop = chance of rain/snow now and today, so every number on the page agrees
 const SCENARIOS = {
-  "clear-day": { theme: "clear-day", icon: "01d", condition: "Clear", condition_id: 800, description: "clear sky", night: false },
-  "clear-night": { theme: "clear-night", icon: "01n", condition: "Clear", condition_id: 800, description: "clear sky", night: true },
-  rain: { theme: "rain", icon: "10d", condition: "Rain", condition_id: 501, description: "moderate rain", night: false },
-  clouds: { theme: "clouds", icon: "04d", condition: "Clouds", condition_id: 803, description: "broken clouds", night: false },
-  snow: { theme: "snow", icon: "13d", condition: "Snow", condition_id: 601, description: "snow", night: false },
+  "clear-day": { theme: "clear-day", icon: "01d", condition: "Clear", condition_id: 800, description: "clear sky", night: false, clouds: 3, pop: 0 },
+  "clear-night": { theme: "clear-night", icon: "01n", condition: "Clear", condition_id: 800, description: "clear sky", night: true, clouds: 2, pop: 0 },
+  rain: { theme: "rain", icon: "10d", condition: "Rain", condition_id: 501, description: "moderate rain", night: false, clouds: 92, pop: 0.9 },
+  clouds: { theme: "clouds", icon: "04d", condition: "Clouds", condition_id: 803, description: "broken clouds", night: false, clouds: 75, pop: 0.1 },
+  snow: { theme: "snow", icon: "13d", condition: "Snow", condition_id: 601, description: "snow", night: false, clouds: 96, pop: 0.8 },
 };
+
+const CONDITION = ["theme", "icon", "condition", "condition_id", "description"];
+const conditionOf = (s) => Object.fromEntries(CONDITION.map((key) => [key, s[key]]));
 
 async function signIn() {
   const api = await request.newContext({ baseURL: BASE, extraHTTPHeaders: { "Content-Type": "application/json" } });
@@ -51,13 +55,26 @@ async function signIn() {
   return { state, ids };
 }
 
-/** Rewrites GET /api/cities/:id/weather so the page shows the given condition and time of day. */
+/**
+ * Rewrites GET /api/cities/:id/weather (and the "Now" hour and today's row of the forecast) so the
+ * page shows the given condition and time of day consistently: hero, cloud cover, hourly, 5-day.
+ */
 async function fakeWeather(page, scenario) {
+  await page.route(/\/api\/cities\/\d+\/forecast$/, async (route) => {
+    const response = await route.fetch();
+    const body = await response.json();
+    if (body.hourly?.[0]) Object.assign(body.hourly[0], conditionOf(scenario), { pop: scenario.pop });
+    if (body.daily?.[0]) {
+      Object.assign(body.daily[0], conditionOf({ ...scenario, icon: scenario.icon.replace("n", "d") }), { pop_max: scenario.pop });
+      if (scenario.pop === 0) body.daily[0].rain_mm = 0;
+    }
+    await route.fulfill({ response, json: body });
+  });
   await page.route(/\/api\/cities\/\d+\/weather$/, async (route) => {
     const response = await route.fetch();
     const body = await response.json();
     const w = body.weather;
-    Object.assign(w, { theme: scenario.theme, icon: scenario.icon, condition: scenario.condition, condition_id: scenario.condition_id, description: scenario.description });
+    Object.assign(w, conditionOf(scenario), { clouds_pct: scenario.clouds });
     const rise = new Date(w.sunrise ?? Date.now()).getTime();
     const set = new Date(w.sunset ?? Date.now()).getTime();
     w.observed_at = new Date(scenario.night ? set + 3 * 3600_000 : (rise + set) / 2).toISOString();

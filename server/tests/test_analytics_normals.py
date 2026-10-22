@@ -82,3 +82,24 @@ def test_compare_aligns_cities_on_the_same_dates():
     assert result["cities"][1]["series"]["tmean"] == [1.0, 2.0, 3.0]
     assert result["cities"][2]["series"]["tmean"] == [None, 20.0, None]     # missing stays null, not shifted
     assert result["cities"][2]["summary"]["days_with_data"] == 1
+
+
+def test_compare_summaries_cover_each_city_own_days():
+    # Tokyo's "yesterday" can be a day later than London's: the dates are the union,
+    # but neither city should report the other's extra day as missing
+    a = daily_frame([{"date": date(2026, 1, d), "tmean": 1.0} for d in range(1, 4)], date(2026, 1, 1), date(2026, 1, 3))
+    b = daily_frame([{"date": date(2026, 1, d), "tmean": 2.0} for d in range(2, 5)], date(2026, 1, 2), date(2026, 1, 4))
+    result = compare_cities({1: a, 2: b})
+    assert len(result["dates"]) == 4
+    for city in (1, 2):
+        assert result["cities"][city]["summary"]["days"] == 3
+        assert result["cities"][city]["summary"]["coverage"] == 1.0
+
+
+def test_compare_keeps_a_rolling_mean_computed_with_warm_up_days():
+    frame = daily_frame([{"date": date(2026, 1, d), "tmean": 10.0} for d in range(1, 3)], date(2026, 1, 1), date(2026, 1, 2))
+    frame["tmean_7d"] = [9.5, 9.75]          # e.g. from period_frame, which saw the 6 days before
+    without = frame.drop(columns="tmean_7d")
+    result = compare_cities({1: frame, 2: without})
+    assert result["cities"][1]["series"]["tmean_7d"] == [9.5, 9.75]
+    assert result["cities"][2]["series"]["tmean_7d"] == [None, None]     # 2 days < min_periods
