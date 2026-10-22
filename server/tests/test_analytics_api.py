@@ -1,4 +1,6 @@
 """History analytics end to end, with Open-Meteo mocked: correct answers AND as few calls as possible."""
+import threading
+import time
 from datetime import UTC, date, datetime, timedelta
 
 import httpx
@@ -21,12 +23,30 @@ class FakeArchive:
         self.null_dates: set[date] = set()
         self.fail_normals = False
         self.fail_all = False
+        self.fail_latitudes: set[str] = set()   # e.g. {"41.89"}: requests for that latitude fail
+        self.delay = 0.0                         # seconds per request, to test parallel loading
+        self._lock = threading.Lock()
+        self.in_flight = 0
+        self.max_in_flight = 0
 
     @staticmethod
     def tmean(day: date) -> float:
         return 10.0 + day.toordinal() % 10
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
+        with self._lock:
+            self.in_flight += 1
+            self.max_in_flight = max(self.max_in_flight, self.in_flight)
+        try:
+            time.sleep(self.delay)
+            return self._answer(request)
+        finally:
+            with self._lock:
+                self.in_flight -= 1
+
+    def _answer(self, request: httpx.Request) -> httpx.Response:
+        if any(request.url.params["latitude"].startswith(lat) for lat in self.fail_latitudes):
+            return httpx.Response(500)
         start = date.fromisoformat(request.url.params["start_date"])
         end = date.fromisoformat(request.url.params["end_date"])
         self.requests.append((start, end))
@@ -246,3 +266,23 @@ def test_compare_needs_2_or_3_different_cities(user, three_cities, archive, db, 
 
 def test_compare_unknown_city(user, three_cities, archive):
     assert user.get("/api/analytics/compare", params={"city_id": [three_cities[0], 999999]}).status_code == 404
+
+
+def test_compare_loads_cities_in_parallel(user, three_cities, archive, db):
+    # Warm up: the normals get computed once (CPU work, which threads can't overlap anyway)
+    user.get("/api/analytics/compare", params={"city_id": three_cities, "days": 30})
+    db.query(DailyWeather).delete()
+    db.commit()
+    archive.delay, archive.max_in_flight = 0.6, 0
+    started = time.perf_counter()
+    body = user.get("/api/analytics/compare", params={"city_id": three_cities, "days": 30}).json()
+    elapsed = time.perf_counter() - started
+    assert [c["city"]["name"] for c in body["cities"]] == ["Paris", "Rome", "Oslo"]   # order kept
+    assert archive.max_in_flight == 3                        # all three cities at the same time
+    assert elapsed < 3 * 0.6                                 # one after another would take at least 1.8 s
+
+
+def test_compare_with_one_city_down_and_nothing_stored(user, three_cities, archive):
+    archive.fail_latitudes = {"41.89"}                       # Rome
+    response = user.get("/api/analytics/compare", params={"city_id": three_cities})
+    assert response.status_code == 503                       # no history for Rome at all: can't compare honestly

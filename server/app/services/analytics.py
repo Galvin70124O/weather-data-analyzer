@@ -2,6 +2,8 @@
 Glue between storage and the pure analytics functions: load the days and normals, run
 app/analytics/*, shape the answer. No calculations of its own.
 """
+import asyncio
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -57,14 +59,29 @@ def city_analytics(db: Session, city: City, days: int) -> dict[str, Any]:
     }
 
 
-def compare(db: Session, cities: list[City], days: int) -> dict[str, Any]:
-    frames, stale = {}, False
-    normals_available = {}
-    for city in cities:
-        frame, city_stale, _, has_normals = period_frame(db, city, days)
-        frames[city.id] = frame
-        stale = stale or city_stale
-        normals_available[city.id] = has_normals
+COMPARE_MAX_PARALLEL = 5
+
+
+def _city_period(session_factory: Callable[[], Session], city_id: int, days: int) -> tuple[pd.DataFrame, bool, bool]:
+    """Runs in a worker thread, with its own session (a Session must never be shared between threads)."""
+    with session_factory() as db:
+        city = db.get(City, city_id)
+        frame, stale, _, has_normals = period_frame(db, city, days)
+        return frame, stale, has_normals
+
+
+async def compare(session_factory: Callable[[], Session], cities: list[City], days: int) -> dict[str, Any]:
+    """The cities are loaded in parallel (at most COMPARE_MAX_PARALLEL at once)."""
+    limit = asyncio.Semaphore(COMPARE_MAX_PARALLEL)
+
+    async def load(city: City) -> tuple[pd.DataFrame, bool, bool]:
+        async with limit:
+            return await asyncio.to_thread(_city_period, session_factory, city.id, days)
+
+    loaded = await asyncio.gather(*(load(city) for city in cities))
+    frames = {city.id: frame for city, (frame, _, _) in zip(cities, loaded)}
+    normals_available = {city.id: has_normals for city, (_, _, has_normals) in zip(cities, loaded)}
+    stale = any(city_stale for _, city_stale, _ in loaded)
     result = compare_cities(frames)
     return {
         "days": days,

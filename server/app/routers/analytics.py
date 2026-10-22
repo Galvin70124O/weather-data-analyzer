@@ -1,9 +1,10 @@
 """History analytics for one city, and side-by-side comparison of 2-3 cities."""
+import asyncio
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.deps import CurrentUser, DbSession
+from app.deps import CurrentUser, DbSession, SessionFactory
 from app.models import City
 from app.routers.cities import get_city_or_404
 from app.schemas.analytics import AnalyticsOut, CompareOut
@@ -33,11 +34,12 @@ def city_analytics(city_id: int, db: DbSession, user: CurrentUser, days: Days) -
 
 
 @router.get("/analytics/compare", response_model=CompareOut)
-def compare(db: DbSession, user: CurrentUser,
-            city_id: Annotated[list[int], Query(description="2 or 3 city ids, e.g. ?city_id=1&city_id=2")],
-            days: Days) -> dict:
+async def compare(db: DbSession, user: CurrentUser, session_factory: SessionFactory,
+                  city_id: Annotated[list[int], Query(description="2 or 3 city ids, e.g. ?city_id=1&city_id=2")],
+                  days: Days) -> dict:
+    """The cities are loaded in parallel, each with its own database session."""
     ids = list(dict.fromkeys(city_id))          # drop repeats, keep the order
     if not 2 <= len(ids) <= 3:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Compare 2 or 3 different cities.")
-    cities: list[City] = [get_city_or_404(db, i) for i in ids]
-    return analytics.compare(db, cities, days)
+    cities: list[City] = await asyncio.to_thread(lambda: [get_city_or_404(db, i) for i in ids])
+    return await analytics.compare(session_factory, cities, days)
