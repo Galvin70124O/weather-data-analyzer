@@ -1,7 +1,7 @@
 # Weather Data Analyzer v2
 
 Rebuild of a Streamlit app as FastAPI + React. Work happens in phases, with a commit after each:
-1. backend skeleton + DB + auth ✅  2. weather + caching ✅  3. analytics + tests  4. frontend  5. CI + Render deploy + README.
+1. backend skeleton + DB + auth ✅  2. weather + caching ✅  3. analytics + tests ✅  4. frontend  5. CI + Render deploy + README.
 The old Streamlit app lives in `legacy/` until v2 works. Don't edit it; don't delete it yet.
 
 ## Structure
@@ -18,6 +18,8 @@ server/                 FastAPI (Python 3.12)
   app/services/         logic that talks to the DB or outside APIs: rate_limit, cache, openweather (HTTP), cities
   app/services/openweather_parse.py  PURE parsing of OpenWeatherMap JSON (no DB/HTTP), unit-tested
   app/core/logging.py   redacts appid=... from httpx/httpcore log lines
+  app/analytics/        PURE pandas functions (daily.py, normals.py, compare.py): DataFrame in, DataFrame/dict out
+  app/services/openmeteo.py  archive fetch + daily_weather storage; normals.py lazy 1991-2020 normals; analytics.py glue
   app/deps.py           DbSession, CurrentUser, client_ip
   migrations/           Alembic (env.py reads DATABASE_URL from settings)
   tests/                pytest against a real Postgres (TEST_DATABASE_URL)
@@ -59,6 +61,12 @@ alembic check                     # fails if models and migrations differ
 - **Cache clean-up:** rows expired more than 30 days ago are deleted at startup (lifespan) and at most every 10 min during cache writes (`maybe_prune`). Never on every request.
 - **Parallel work:** a SQLAlchemy Session is not thread-safe. Work in worker threads (e.g. the dashboard: `asyncio.gather` + `Semaphore(5)` + `asyncio.to_thread`) opens its own session from `SessionFactory`. Each card catches its own errors.
 - **Side effects:** `GET /api/cities/{id}/weather` records a recent search and a weather snapshot (de-duplicated on observed_at). Forecast and dashboard don't.
+- **Analytics (phase 3):**
+  - Pure functions only in `app/analytics/` (no DB/HTTP), unit-tested on small hand-made data with known answers.
+  - Missing data is explicit: `daily_frame` has one row per calendar day (missing = NaN row); averages skip NaN but summaries report `days_with_data`, `coverage`, `missing_dates`, `low_coverage` (<80%). Rolling 7-day mean needs ≥5 real values. NaN → JSON null, never 0.
+  - Open-Meteo (free tier = non-commercial, daily limits): one archive request covers exactly the missing/due span. Days older than 7 days are final and never refetched; newer days at most every 6 h. Dates are the city's local calendar; analytics end at the city's local yesterday (`cities.utc_offset_s`). Today is never stored.
+  - 1991-2020 normals: fetched lazily on a city's first analytics view, stored in `climate_normals` (365 rows), never refetched. If the fetch fails, analytics still work (`normals.available=false`) and the next view retries. 15-day window (±7, wraps the year), 29 Feb = 28 Feb, p10/p90 of daily mean = the "normal range".
+  - `days` is 30/90/365 (checked in `period_days`; a `Literal` would reject query strings). Compare takes 2-3 different `city_id`s.
 - **Units:** the server stores and computes in metric only. `users.units` (metric/imperial) is a display preference; the client converts.
 - **Secrets:** only in env vars / `.env` (git-ignored). The OpenWeatherMap key stays on the server and must never be sent to the browser.
 - **Tests:** refuse to run unless `TEST_DATABASE_URL` is set and differs from `DATABASE_URL`. The schema is built with the real Alembic migrations; tables are truncated before every test. Outside APIs get mocked (respx), never called.

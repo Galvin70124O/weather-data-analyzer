@@ -190,3 +190,10 @@ def test_redact_helper():
 
     assert redact("GET https://x/y?q=a&appid=SECRET&units=metric") == "GET https://x/y?q=a&appid=***&units=metric"
     assert redact("nothing secret here") == "nothing secret here"
+
+
+def test_opening_a_city_remembers_its_utc_offset(user, db):
+    city_id = london_id(user)
+    user.get(f"/api/cities/{city_id}/weather")                # the sample answer has timezone=3600
+    db.expire_all()
+    assert db.get(City, city_id).utc_offset_s == 3600

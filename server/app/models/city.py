@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, Numeric, String, UniqueConstraint, func
+from sqlalchemy import DateTime, Integer, Numeric, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -24,6 +24,9 @@ class City(Base):
     # 4 decimals = about 11 m: plenty for weather, and the same place always gets the same row
     lat: Mapped[Decimal] = mapped_column(Numeric(7, 4))
     lon: Mapped[Decimal] = mapped_column(Numeric(7, 4))
+    # The city's offset from UTC (seconds), learned from the first weather answer. Used to know
+    # which day is "yesterday" there. NULL until known.
+    utc_offset_s: Mapped[int | None] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (UniqueConstraint("lat", "lon", name="uq_cities_lat_lon"),)

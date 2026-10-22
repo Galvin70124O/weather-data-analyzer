@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 
 from app.core.logging import configure_logging
 from app.db.session import get_sessionmaker
-from app.routers import auth, cities, health, me, my_cities
+from app.routers import analytics, auth, cities, health, me, my_cities
 from app.services.cache import prune_at_startup
 from app.services.errors import UpstreamError
 
@@ -67,6 +67,7 @@ def create_app() -> FastAPI:
     app.include_router(me.router)
     app.include_router(cities.router)
     app.include_router(my_cities.router)
+    app.include_router(analytics.router)
     return app
 
 

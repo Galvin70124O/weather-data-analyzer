@@ -41,6 +41,9 @@ def city_weather(city_id: int, db: DbSession, user: CurrentUser) -> dict:
     city = get_city_or_404(db, city_id)
     result = openweather.current_weather(db, float(city.lat), float(city.lon))
     current = parse_current(result.data)
+    if city.utc_offset_s != current["timezone_offset_s"]:   # lets analytics know the city's "yesterday"
+        city.utc_offset_s = current["timezone_offset_s"]
+        db.commit()
     city_service.record_search(db, user, city)
     city_service.save_snapshot(db, user, city, current)
     return {"city": city, "weather": current, "fetched_at": result.fetched_at, "stale": result.stale}

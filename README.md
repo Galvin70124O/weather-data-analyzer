@@ -7,8 +7,8 @@ version is in [`legacy/`](legacy/) until the new one is complete.
 |---|---|
 | 1. Backend skeleton, database, accounts (register, login, logout, change password, rate limit) | ✅ done |
 | 2. Weather (OpenWeatherMap): city search, current weather, forecast, favourites, history, caching | ✅ done |
-| 3. Analytics (Open-Meteo history, pandas) | next |
-| 4. Frontend (React + TypeScript + Vite) | |
+| 3. Analytics: 30/90/365-day history, rolling means, 1991-2020 normals, anomalies, extremes, compare cities | ✅ done |
+| 4. Frontend (React + TypeScript + Vite) | next |
 | 5. CI + Render deploy + full README | |
 
 ## Run the backend locally (Windows PowerShell)
@@ -26,3 +26,8 @@ uvicorn app.main:app --reload
 Open http://127.0.0.1:8000/api/docs. Run the tests with `pytest` (from `server/`).
 
 See [CLAUDE.md](CLAUDE.md) for the structure and conventions.
+
+## Data sources
+
+- Current weather, forecasts and city search: [OpenWeatherMap](https://openweathermap.org/) (API key on the server only).
+- Historical weather and 1991-2020 normals: [Open-Meteo](https://open-meteo.com/) Historical Weather API, data licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Open-Meteo's free API is for **non-commercial use** and has daily limits, so the app stores past days and only refreshes the most recent week.
